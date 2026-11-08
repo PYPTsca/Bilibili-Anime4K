@@ -59,7 +59,7 @@
 | 性能保护       | 关         |
 | 显示统计       | 开         |
 
-> [!NOTE] 注意
+> [!NOTE]
 > 这套默认值渲染压力较大。如果播放不流畅，优先把**质量档位**降到S/M，或把**输出分辨率**降到1440P/1080P。
 
 ## 参数说明
@@ -86,7 +86,7 @@
 | VL   | 1.45×          |
 | UL   | 1.75×          |
 
->[!NOTE]注意
+>[!NOTE]
 >这是**近似实现**：真正的Anime4Kv4CNN变体在WebGL里无法实时运行，本脚本用内部超采样倍率模拟“越高越清晰、越慢”的梯度。模式本身也是经典WebGL管线的近似，不是v4的CNN推理。
 
 ### 其它参数
@@ -158,19 +158,10 @@ ffmpeg-y-flavfi-i"testsrc2=size=1280x720:rate=24:duration=6"^
 -c:vlibx264-pix_fmtyuv420p-movflags+faststarttest/test.mp4
 ```
 
-### 其它调试工具：
+### 其它调试工具
 
 - `nodetools/inspect-bili.mjs[url]`：无头Edge打开B站页面并dump播放器DOM；
 - `nodetools/debug-geom.mjs`：检查画布/播放器几何与重排结果。
-
-## 项目结构
-
-```text
-Bilibili-Anime4K.user.js#单文件用户脚本
-docs/#README截图
-test/#本地验收页、服务器、测试视频
-tools/#CDP驱动与测试runner（Windows+Edge）
-```
 
 ## 致谢
 
@@ -179,9 +170,11 @@ tools/#CDP驱动与测试runner（Windows+Edge）
 - [net2cn/Bilibili_Anime4K](https://github.com/net2cn/Bilibili_Anime4K)：B站用户脚本基线（MIT）
 - [Tampermonkey](https://www.tampermonkey.net/)
 
-## License
+## 许可证
 
 [MIT](./LICENSE)
 
-> [!warning] 免责声明
+---
+
+> [!WARNING]
 > 本项目为非官方增强工具，与哔哩哔哩及Anime4K官方无隶属关系。仅对浏览器内已渲染画面做前端处理，不下载、不破解、不绕过付费或DRM。使用产生的画质、性能与账号风险由使用者自行承担，请遵守B站服务条款及所在地法律。
