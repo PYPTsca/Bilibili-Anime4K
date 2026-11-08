@@ -1,0 +1,16 @@
+# 本地测试与抓取产物
+.tmp/
+test/out/
+node_modules/
+*.log
+
+# 第三方页面/CSS 抓取，不随仓库分发
+peek.html
+bili-video.css
+
+# 本地参考的旧版第三方脚本，不随仓库分发
+1.uesr.js
+
+# 系统文件
+.DS_Store
+Thumbs.db

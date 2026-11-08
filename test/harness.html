@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Bilibili-Anime4K harness</title>
+<style>
+  html, body { margin: 0; background: #111; color: #fff; font: 13px/1.5 "Segoe UI", sans-serif; }
+  #player {
+    position: relative; width: 960px; height: 540px; margin: 40px auto; background: #000;
+    box-shadow: 0 0 0 1px #333;
+  }
+  #player video { width: 100%; height: 100%; object-fit: contain; display: block; }
+  #quality { position: absolute; left: 8px; bottom: 48px; font-size: 11px; opacity: .8; }
+</style>
+</head>
+<body>
+  <div id="player" class="bpx-player-container" data-screen="normal">
+    <div class="bpx-player-video-area" style="position:absolute;inset:0">
+      <div class="bpx-player-video-wrap" style="position:absolute;inset:0;background:#000">
+        <video id="v" src="/test.mp4" muted loop autoplay playsinline></video>
+        <div class="bpx-player-video-danmaku" style="position:absolute;inset:0;pointer-events:none"></div>
+      </div>
+    </div>
+    <div class="bpx-player-control-wrap" style="position:absolute;left:0;right:0;bottom:0;height:44px;background:rgba(0,0,0,.65)"></div>
+    <span class="bpx-player-ctrl-quality-result" id="quality" style="display:none"></span>
+  </div>
+
+  <script>
+    // 测试时写入轻量配置（仅首次），避免无头环境用默认 4K + A+A 把测试拖死。
+    if (/[?&]bilia4k-test=1/.test(location.search) && !localStorage.getItem('bilia4k.config.v3')) {
+      var cheap = {
+        enabled: false, mode: 'A', secondary: 'none', variant: 'S',
+        strength: 60, output: '1080', fps: 30, fxaa: false,
+        upscale: 'bicubic', sharpen: 0, lineThreshold: 80,
+        perfGuard: true, showStats: true, forceHdr: false
+      };
+      localStorage.setItem('bilia4k.config.v3', JSON.stringify({
+        video: cheap,
+        bangumi: Object.assign({}, cheap, { enabled: true })
+      }));
+    }
+  </script>
+  <script src="/Bilibili-Anime4K.user.js"></script>
+  <script src="/test/harness.js"></script>
+</body>
+</html>
