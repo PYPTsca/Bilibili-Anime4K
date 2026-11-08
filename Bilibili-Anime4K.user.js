@@ -32,7 +32,7 @@
     const TEST_MODE = /[?&]bilia4k-test=1(?:&|$)/.test(location.search);
     const UI_HOST_ATTR = "data-bilia4k-ui";
 
-    // 在页面脚本之前抢占 wheel 捕获，避免滚动设置面板时被 B 站调成音量。
+    // 在页面脚本之前抢占 wheel 捕获，避免在全屏滚动设置面板时被 B 站调成音量。
     window.addEventListener(
         "wheel",
         (e) => {
@@ -164,7 +164,7 @@
         enabled: false,
         mode: "A",
         secondary: "A",
-        variant: "M",
+        variant: "UL",
         strength: 80,
         output: "2160",
         fps: 30,
@@ -173,7 +173,7 @@
         sharpen: 60,
         lineThreshold: 85,
         perfGuard: false,
-        showStats: true,
+        showStats: false,
         forceHdr: false,
     });
 
@@ -315,8 +315,8 @@ precision highp float;
 attribute vec2 a_pos;
 varying vec2 v_uv;
 void main() {
-  v_uv = a_pos;
-  gl_Position = vec4(a_pos * 2.0 - 1.0, 0.0, 1.0);
+    v_uv = a_pos;
+    gl_Position = vec4(a_pos * 2.0 - 1.0, 0.0, 1.0);
 }
 `;
 
@@ -330,74 +330,74 @@ uniform float u_axis;
 varying vec2 v_uv;
 
 vec4 sampleAt(vec2 p) {
-  return texture2D(u_tex, (p + 0.5) / u_src);
+    return texture2D(u_tex, (p + 0.5) / u_src);
 }
 
 float cubicWeight(float x) {
-  x = abs(x);
-  if (x <= 1.0) return 1.5 * x * x * x - 2.5 * x * x + 1.0;
-  if (x < 2.0) return -0.5 * x * x * x + 2.5 * x * x - 4.0 * x + 2.0;
-  return 0.0;
+    x = abs(x);
+    if (x <= 1.0) return 1.5 * x * x * x - 2.5 * x * x + 1.0;
+    if (x < 2.0) return -0.5 * x * x * x + 2.5 * x * x - 4.0 * x + 2.0;
+    return 0.0;
 }
 
 float sincf(float x) {
-  if (abs(x) < 1e-5) return 1.0;
-  float p = x * 3.141592653589793;
-  return sin(p) / p;
+    if (abs(x) < 1e-5) return 1.0;
+    float p = x * 3.141592653589793;
+    return sin(p) / p;
 }
 
 float lanczosWeight(float x) {
-  x = abs(x);
-  if (x >= 3.0) return 0.0;
-  return sincf(x) * sincf(x / 3.0);
+    x = abs(x);
+    if (x >= 3.0) return 0.0;
+    return sincf(x) * sincf(x / 3.0);
 }
 
 vec4 doAxis(vec2 srcPos, float c, float ratio) {
-  if (u_filter == 0) {
+    if (u_filter == 0) {
+        float f = floor(c);
+        float t = c - f;
+        vec4 a = (u_axis < 0.5) ? sampleAt(vec2(f, srcPos.y)) : sampleAt(vec2(srcPos.x, f));
+        vec4 b = (u_axis < 0.5) ? sampleAt(vec2(f + 1.0, srcPos.y)) : sampleAt(vec2(srcPos.x, f + 1.0));
+        return mix(a, b, t);
+    }
+    if (u_filter == 1) {
+        float f = floor(c);
+        float t = c - f;
+        float w0 = cubicWeight(-1.0 - t);
+        float w1 = cubicWeight(-t);
+        float w2 = cubicWeight(1.0 - t);
+        float w3 = cubicWeight(2.0 - t);
+        vec4 acc = vec4(0.0);
+        acc += ((u_axis < 0.5) ? sampleAt(vec2(f - 1.0, srcPos.y)) : sampleAt(vec2(srcPos.x, f - 1.0))) * w0;
+        acc += ((u_axis < 0.5) ? sampleAt(vec2(f, srcPos.y)) : sampleAt(vec2(srcPos.x, f))) * w1;
+        acc += ((u_axis < 0.5) ? sampleAt(vec2(f + 1.0, srcPos.y)) : sampleAt(vec2(srcPos.x, f + 1.0))) * w2;
+        acc += ((u_axis < 0.5) ? sampleAt(vec2(f + 2.0, srcPos.y)) : sampleAt(vec2(srcPos.x, f + 2.0))) * w3;
+        float wsum = w0 + w1 + w2 + w3;
+        return acc / (abs(wsum) < 1e-4 ? 1.0 : wsum);
+    }
     float f = floor(c);
-    float t = c - f;
-    vec4 a = (u_axis < 0.5) ? sampleAt(vec2(f, srcPos.y)) : sampleAt(vec2(srcPos.x, f));
-    vec4 b = (u_axis < 0.5) ? sampleAt(vec2(f + 1.0, srcPos.y)) : sampleAt(vec2(srcPos.x, f + 1.0));
-    return mix(a, b, t);
-  }
-  if (u_filter == 1) {
-    float f = floor(c);
-    float t = c - f;
-    float w0 = cubicWeight(-1.0 - t);
-    float w1 = cubicWeight(-t);
-    float w2 = cubicWeight(1.0 - t);
-    float w3 = cubicWeight(2.0 - t);
+    float w0 = lanczosWeight((f - 2.0 - c) / ratio);
+    float w1 = lanczosWeight((f - 1.0 - c) / ratio);
+    float w2 = lanczosWeight((f - c) / ratio);
+    float w3 = lanczosWeight((f + 1.0 - c) / ratio);
+    float w4 = lanczosWeight((f + 2.0 - c) / ratio);
+    float w5 = lanczosWeight((f + 3.0 - c) / ratio);
     vec4 acc = vec4(0.0);
-    acc += ((u_axis < 0.5) ? sampleAt(vec2(f - 1.0, srcPos.y)) : sampleAt(vec2(srcPos.x, f - 1.0))) * w0;
-    acc += ((u_axis < 0.5) ? sampleAt(vec2(f, srcPos.y)) : sampleAt(vec2(srcPos.x, f))) * w1;
-    acc += ((u_axis < 0.5) ? sampleAt(vec2(f + 1.0, srcPos.y)) : sampleAt(vec2(srcPos.x, f + 1.0))) * w2;
-    acc += ((u_axis < 0.5) ? sampleAt(vec2(f + 2.0, srcPos.y)) : sampleAt(vec2(srcPos.x, f + 2.0))) * w3;
-    float wsum = w0 + w1 + w2 + w3;
+    acc += ((u_axis < 0.5) ? sampleAt(vec2(f - 2.0, srcPos.y)) : sampleAt(vec2(srcPos.x, f - 2.0))) * w0;
+    acc += ((u_axis < 0.5) ? sampleAt(vec2(f - 1.0, srcPos.y)) : sampleAt(vec2(srcPos.x, f - 1.0))) * w1;
+    acc += ((u_axis < 0.5) ? sampleAt(vec2(f, srcPos.y)) : sampleAt(vec2(srcPos.x, f))) * w2;
+    acc += ((u_axis < 0.5) ? sampleAt(vec2(f + 1.0, srcPos.y)) : sampleAt(vec2(srcPos.x, f + 1.0))) * w3;
+    acc += ((u_axis < 0.5) ? sampleAt(vec2(f + 2.0, srcPos.y)) : sampleAt(vec2(srcPos.x, f + 2.0))) * w4;
+    acc += ((u_axis < 0.5) ? sampleAt(vec2(f + 3.0, srcPos.y)) : sampleAt(vec2(srcPos.x, f + 3.0))) * w5;
+    float wsum = w0 + w1 + w2 + w3 + w4 + w5;
     return acc / (abs(wsum) < 1e-4 ? 1.0 : wsum);
-  }
-  float f = floor(c);
-  float w0 = lanczosWeight((f - 2.0 - c) / ratio);
-  float w1 = lanczosWeight((f - 1.0 - c) / ratio);
-  float w2 = lanczosWeight((f - c) / ratio);
-  float w3 = lanczosWeight((f + 1.0 - c) / ratio);
-  float w4 = lanczosWeight((f + 2.0 - c) / ratio);
-  float w5 = lanczosWeight((f + 3.0 - c) / ratio);
-  vec4 acc = vec4(0.0);
-  acc += ((u_axis < 0.5) ? sampleAt(vec2(f - 2.0, srcPos.y)) : sampleAt(vec2(srcPos.x, f - 2.0))) * w0;
-  acc += ((u_axis < 0.5) ? sampleAt(vec2(f - 1.0, srcPos.y)) : sampleAt(vec2(srcPos.x, f - 1.0))) * w1;
-  acc += ((u_axis < 0.5) ? sampleAt(vec2(f, srcPos.y)) : sampleAt(vec2(srcPos.x, f))) * w2;
-  acc += ((u_axis < 0.5) ? sampleAt(vec2(f + 1.0, srcPos.y)) : sampleAt(vec2(srcPos.x, f + 1.0))) * w3;
-  acc += ((u_axis < 0.5) ? sampleAt(vec2(f + 2.0, srcPos.y)) : sampleAt(vec2(srcPos.x, f + 2.0))) * w4;
-  acc += ((u_axis < 0.5) ? sampleAt(vec2(f + 3.0, srcPos.y)) : sampleAt(vec2(srcPos.x, f + 3.0))) * w5;
-  float wsum = w0 + w1 + w2 + w3 + w4 + w5;
-  return acc / (abs(wsum) < 1e-4 ? 1.0 : wsum);
 }
 
 void main() {
-  vec2 srcPos = (v_uv * u_dst + 0.5) * (u_src / u_dst) - 0.5;
-  float c = (u_axis < 0.5) ? srcPos.x : srcPos.y;
-  float ratio = (u_axis < 0.5) ? max(1.0, u_src.x / u_dst.x) : max(1.0, u_src.y / u_dst.y);
-  gl_FragColor = doAxis(srcPos, c, ratio);
+    vec2 srcPos = (v_uv * u_dst + 0.5) * (u_src / u_dst) - 0.5;
+    float c = (u_axis < 0.5) ? srcPos.x : srcPos.y;
+    float ratio = (u_axis < 0.5) ? max(1.0, u_src.x / u_dst.x) : max(1.0, u_src.y / u_dst.y);
+    gl_FragColor = doAxis(srcPos, c, ratio);
 }
 `;
 
@@ -409,92 +409,96 @@ uniform float u_strength;
 varying vec2 v_uv;
 
 float getLum(vec4 rgb) {
-  return (rgb.r + rgb.r + rgb.g + rgb.g + rgb.g + rgb.b) / 6.0;
+    return (rgb.r + rgb.r + rgb.g + rgb.g + rgb.g + rgb.b) / 6.0;
 }
 
 vec4 getRGBL(vec2 pos) {
-  vec4 c = texture2D(u_tex, pos);
-  return vec4(c.rgb, getLum(c));
+    vec4 c = texture2D(u_tex, pos);
+    return vec4(c.rgb, getLum(c));
 }
 
 vec4 getLargest(vec4 cc, vec4 lightestColor, vec4 a, vec4 b, vec4 c) {
-  vec4 newColor = cc * (1.0 - u_strength) + ((a + b + c) / 3.0) * u_strength;
-  return newColor.a > lightestColor.a ? newColor : lightestColor;
+    vec4 newColor = cc * (1.0 - u_strength) + ((a + b + c) / 3.0) * u_strength;
+    return newColor.a > lightestColor.a ? newColor : lightestColor;
 }
 
 float min3v(vec4 a, vec4 b, vec4 c) {
-  return min(min(a.a, b.a), c.a);
+    return min(min(a.a, b.a), c.a);
 }
 
 float max3v(vec4 a, vec4 b, vec4 c) {
-  return max(max(a.a, b.a), c.a);
+    return max(max(a.a, b.a), c.a);
 }
 
 void main() {
-  vec2 pos = v_uv;
-  vec2 d = u_pt;
+    vec2 pos = v_uv;
+    vec2 d = u_pt;
 
-  vec4 cc = getRGBL(pos);
-  vec4 t = getRGBL(pos + vec2(0.0, -d.y));
-  vec4 tl = getRGBL(pos + vec2(-d.x, -d.y));
-  vec4 tr = getRGBL(pos + vec2(d.x, -d.y));
-  vec4 l = getRGBL(pos + vec2(-d.x, 0.0));
-  vec4 r = getRGBL(pos + vec2(d.x, 0.0));
-  vec4 b = getRGBL(pos + vec2(0.0, d.y));
-  vec4 bl = getRGBL(pos + vec2(-d.x, d.y));
-  vec4 br = getRGBL(pos + vec2(d.x, d.y));
+    vec4 cc = getRGBL(pos);
+    vec4 t = getRGBL(pos + vec2(0.0, -d.y));
+    vec4 tl = getRGBL(pos + vec2(-d.x, -d.y));
+    vec4 tr = getRGBL(pos + vec2(d.x, -d.y));
+    vec4 l = getRGBL(pos + vec2(-d.x, 0.0));
+    vec4 r = getRGBL(pos + vec2(d.x, 0.0));
+    vec4 b = getRGBL(pos + vec2(0.0, d.y));
+    vec4 bl = getRGBL(pos + vec2(-d.x, d.y));
+    vec4 br = getRGBL(pos + vec2(d.x, d.y));
 
-  vec4 lightestColor = cc;
+    vec4 lightestColor = cc;
 
-  float maxDark = max3v(br, b, bl);
-  float minLight = min3v(tl, t, tr);
-  if (minLight > cc.a && minLight > maxDark + 0.02) {
-    lightestColor = getLargest(cc, lightestColor, tl, t, tr);
-  } else {
-    maxDark = max3v(tl, t, tr);
-    minLight = min3v(br, b, bl);
+    float maxDark = max3v(br, b, bl);
+    float minLight = min3v(tl, t, tr);
     if (minLight > cc.a && minLight > maxDark + 0.02) {
-      lightestColor = getLargest(cc, lightestColor, br, b, bl);
+        lightestColor = getLargest(cc, lightestColor, tl, t, tr);
     }
-  }
+    else {
+        maxDark = max3v(tl, t, tr);
+        minLight = min3v(br, b, bl);
+        if (minLight > cc.a && minLight > maxDark + 0.02) {
+            lightestColor = getLargest(cc, lightestColor, br, b, bl);
+        }
+    }
 
-  maxDark = max3v(cc, l, b);
-  minLight = min3v(r, t, tr);
-  if (minLight > maxDark + 0.02) {
-    lightestColor = getLargest(cc, lightestColor, r, t, tr);
-  } else {
-    maxDark = max3v(cc, r, t);
-    minLight = min3v(bl, l, b);
+    maxDark = max3v(cc, l, b);
+    minLight = min3v(r, t, tr);
     if (minLight > maxDark + 0.02) {
-      lightestColor = getLargest(cc, lightestColor, bl, l, b);
+        lightestColor = getLargest(cc, lightestColor, r, t, tr);
     }
-  }
+    else {
+        maxDark = max3v(cc, r, t);
+        minLight = min3v(bl, l, b);
+        if (minLight > maxDark + 0.02) {
+            lightestColor = getLargest(cc, lightestColor, bl, l, b);
+        }
+    }
 
-  maxDark = max3v(l, tl, bl);
-  minLight = min3v(r, br, tr);
-  if (minLight > cc.a && minLight > maxDark + 0.02) {
-    lightestColor = getLargest(cc, lightestColor, r, br, tr);
-  } else {
-    maxDark = max3v(r, br, tr);
-    minLight = min3v(l, tl, bl);
+    maxDark = max3v(l, tl, bl);
+    minLight = min3v(r, br, tr);
     if (minLight > cc.a && minLight > maxDark + 0.02) {
-      lightestColor = getLargest(cc, lightestColor, l, tl, bl);
+        lightestColor = getLargest(cc, lightestColor, r, br, tr);
     }
-  }
+    else {
+        maxDark = max3v(r, br, tr);
+        minLight = min3v(l, tl, bl);
+        if (minLight > cc.a && minLight > maxDark + 0.02) {
+            lightestColor = getLargest(cc, lightestColor, l, tl, bl);
+        }
+    }
 
-  maxDark = max3v(cc, l, t);
-  minLight = min3v(r, br, b);
-  if (minLight > maxDark + 0.02) {
-    lightestColor = getLargest(cc, lightestColor, r, br, b);
-  } else {
-    maxDark = max3v(cc, r, b);
-    minLight = min3v(t, l, tl);
+    maxDark = max3v(cc, l, t);
+    minLight = min3v(r, br, b);
     if (minLight > maxDark + 0.02) {
-      lightestColor = getLargest(cc, lightestColor, t, l, tl);
+        lightestColor = getLargest(cc, lightestColor, r, br, b);
     }
-  }
+    else {
+        maxDark = max3v(cc, r, b);
+        minLight = min3v(t, l, tl);
+        if (minLight > maxDark + 0.02) {
+            lightestColor = getLargest(cc, lightestColor, t, l, tl);
+        }
+    }
 
-  gl_FragColor = vec4(lightestColor.rgb, 1.0);
+    gl_FragColor = vec4(lightestColor.rgb, 1.0);
 }
 `;
 
@@ -557,113 +561,117 @@ uniform float u_strength;
 varying vec2 v_uv;
 
 float getLum(vec4 rgb) {
-  return (rgb.r + rgb.r + rgb.g + rgb.g + rgb.g + rgb.b) / 6.0;
+    return (rgb.r + rgb.r + rgb.g + rgb.g + rgb.g + rgb.b) / 6.0;
 }
 
 vec4 getRGBL(vec2 pos) {
-  vec4 c = texture2D(u_tex, pos);
-  return vec4(c.rgb, getLum(c));
+    vec4 c = texture2D(u_tex, pos);
+    return vec4(c.rgb, getLum(c));
 }
 
 float min3v(vec4 a, vec4 b, vec4 c) {
-  return min(min(a.a, b.a), c.a);
+    return min(min(a.a, b.a), c.a);
 }
 
 float max3v(vec4 a, vec4 b, vec4 c) {
-  return max(max(a.a, b.a), c.a);
+    return max(max(a.a, b.a), c.a);
 }
 
 vec4 getAverage(vec4 cc, vec4 a, vec4 b, vec4 c, float strength) {
-  vec4 mixed = cc * (1.0 - strength) + ((a + b + c) / 3.0) * strength;
-  return vec4(mixed.rgb, 1.0);
+    vec4 mixed = cc * (1.0 - strength) + ((a + b + c) / 3.0) * strength;
+    return vec4(mixed.rgb, 1.0);
 }
 
 void main() {
-  vec2 pos = v_uv;
-  vec2 d = u_pt;
+    vec2 pos = v_uv;
+    vec2 d = u_pt;
 
-  vec4 cc = getRGBL(pos);
-  vec4 t = getRGBL(pos + vec2(0.0, -d.y));
-  vec4 tl = getRGBL(pos + vec2(-d.x, -d.y));
-  vec4 tr = getRGBL(pos + vec2(d.x, -d.y));
-  vec4 l = getRGBL(pos + vec2(-d.x, 0.0));
-  vec4 r = getRGBL(pos + vec2(d.x, 0.0));
-  vec4 b = getRGBL(pos + vec2(0.0, d.y));
-  vec4 bl = getRGBL(pos + vec2(-d.x, d.y));
-  vec4 br = getRGBL(pos + vec2(d.x, d.y));
+    vec4 cc = getRGBL(pos);
+    vec4 t = getRGBL(pos + vec2(0.0, -d.y));
+    vec4 tl = getRGBL(pos + vec2(-d.x, -d.y));
+    vec4 tr = getRGBL(pos + vec2(d.x, -d.y));
+    vec4 l = getRGBL(pos + vec2(-d.x, 0.0));
+    vec4 r = getRGBL(pos + vec2(d.x, 0.0));
+    vec4 b = getRGBL(pos + vec2(0.0, d.y));
+    vec4 bl = getRGBL(pos + vec2(-d.x, d.y));
+    vec4 br = getRGBL(pos + vec2(d.x, d.y));
 
-  float prob = clamp(texture2D(u_prob, pos).x * 1.6, 0.0, 1.0);
-  float avg8 = (tl.a + t.a + tr.a + l.a + r.a + bl.a + b.a + br.a) / 8.0;
-  float dark = clamp((avg8 - cc.a) * 10.0, 0.0, 1.0);
-  float strength = clamp(u_strength * prob * dark, 0.0, 1.0);
+    float prob = clamp(texture2D(u_prob, pos).x * 1.6, 0.0, 1.0);
+    float avg8 = (tl.a + t.a + tr.a + l.a + r.a + bl.a + b.a + br.a) / 8.0;
+    float dark = clamp((avg8 - cc.a) * 10.0, 0.0, 1.0);
+    float strength = clamp(u_strength * prob * dark, 0.0, 1.0);
 
-  // 仅在“中心比两侧都暗”的细线像素上还原，避免把大面积暗部整体提亮。
-  bool darkH = cc.a + 0.012 < min(t.a, b.a);
-  bool darkV = cc.a + 0.012 < min(l.a, r.a);
-  bool darkD1 = cc.a + 0.012 < min(tl.a, br.a);
-  bool darkD2 = cc.a + 0.012 < min(tr.a, bl.a);
-  if (!(darkH || darkV || darkD1 || darkD2)) {
+    // 仅在“中心比两侧都暗”的细线像素上还原，避免把大面积暗部整体提亮。
+    bool darkH = cc.a + 0.012 < min(t.a, b.a);
+    bool darkV = cc.a + 0.012 < min(l.a, r.a);
+    bool darkD1 = cc.a + 0.012 < min(tl.a, br.a);
+    bool darkD2 = cc.a + 0.012 < min(tr.a, bl.a);
+    if (!(darkH || darkV || darkD1 || darkD2)) {
+        gl_FragColor = vec4(cc.rgb, 1.0);
+        return;
+    }
+
+    float maxDark = max3v(br, b, bl);
+    float minLight = min3v(tl, t, tr);
+    if (minLight > cc.a && minLight > maxDark + 0.02) {
+        gl_FragColor = getAverage(cc, tl, t, tr, strength);
+        return;
+    }
+    else {
+        maxDark = max3v(tl, t, tr);
+        minLight = min3v(br, b, bl);
+        if (minLight > cc.a && minLight > maxDark + 0.02) {
+            gl_FragColor = getAverage(cc, br, b, bl, strength);
+            return;
+        }
+    }
+
+    maxDark = max3v(cc, l, b);
+    minLight = min3v(r, t, tr);
+    if (minLight > maxDark + 0.02) {
+        gl_FragColor = getAverage(cc, r, t, tr, strength);
+        return;
+    }
+    else {
+        maxDark = max3v(cc, r, t);
+        minLight = min3v(bl, l, b);
+        if (minLight > maxDark + 0.02) {
+            gl_FragColor = getAverage(cc, bl, l, b, strength);
+            return;
+        }
+    }
+
+    maxDark = max3v(l, tl, bl);
+    minLight = min3v(r, br, tr);
+    if (minLight > cc.a && minLight > maxDark + 0.02) {
+        gl_FragColor = getAverage(cc, r, br, tr, strength);
+        return;
+    }
+    else {
+        maxDark = max3v(r, br, tr);
+        minLight = min3v(l, tl, bl);
+        if (minLight > cc.a && minLight > maxDark + 0.02) {
+            gl_FragColor = getAverage(cc, l, tl, bl, strength);
+            return;
+        }
+    }
+
+    maxDark = max3v(cc, l, t);
+    minLight = min3v(r, br, b);
+    if (minLight > maxDark + 0.02) {
+        gl_FragColor = getAverage(cc, r, br, b, strength);
+        return;
+    }
+    else {
+        maxDark = max3v(cc, r, b);
+        minLight = min3v(t, l, tl);
+        if (minLight > maxDark + 0.02) {
+            gl_FragColor = getAverage(cc, t, l, tl, strength);
+            return;
+        }
+    }
+
     gl_FragColor = vec4(cc.rgb, 1.0);
-    return;
-  }
-
-  float maxDark = max3v(br, b, bl);
-  float minLight = min3v(tl, t, tr);
-  if (minLight > cc.a && minLight > maxDark + 0.02) {
-    gl_FragColor = getAverage(cc, tl, t, tr, strength);
-    return;
-  } else {
-    maxDark = max3v(tl, t, tr);
-    minLight = min3v(br, b, bl);
-    if (minLight > cc.a && minLight > maxDark + 0.02) {
-      gl_FragColor = getAverage(cc, br, b, bl, strength);
-      return;
-    }
-  }
-
-  maxDark = max3v(cc, l, b);
-  minLight = min3v(r, t, tr);
-  if (minLight > maxDark + 0.02) {
-    gl_FragColor = getAverage(cc, r, t, tr, strength);
-    return;
-  } else {
-    maxDark = max3v(cc, r, t);
-    minLight = min3v(bl, l, b);
-    if (minLight > maxDark + 0.02) {
-      gl_FragColor = getAverage(cc, bl, l, b, strength);
-      return;
-    }
-  }
-
-  maxDark = max3v(l, tl, bl);
-  minLight = min3v(r, br, tr);
-  if (minLight > cc.a && minLight > maxDark + 0.02) {
-    gl_FragColor = getAverage(cc, r, br, tr, strength);
-    return;
-  } else {
-    maxDark = max3v(r, br, tr);
-    minLight = min3v(l, tl, bl);
-    if (minLight > cc.a && minLight > maxDark + 0.02) {
-      gl_FragColor = getAverage(cc, l, tl, bl, strength);
-      return;
-    }
-  }
-
-  maxDark = max3v(cc, l, t);
-  minLight = min3v(r, br, b);
-  if (minLight > maxDark + 0.02) {
-    gl_FragColor = getAverage(cc, r, br, b, strength);
-    return;
-  } else {
-    maxDark = max3v(cc, r, b);
-    minLight = min3v(t, l, tl);
-    if (minLight > maxDark + 0.02) {
-      gl_FragColor = getAverage(cc, t, l, tl, strength);
-      return;
-    }
-  }
-
-  gl_FragColor = vec4(cc.rgb, 1.0);
 }
 `;
 
@@ -674,45 +682,45 @@ uniform vec2 u_texel;
 varying vec2 v_uv;
 
 float lum(vec3 c) {
-  return dot(c, vec3(0.299, 0.587, 0.114));
+    return dot(c, vec3(0.299, 0.587, 0.114));
 }
 
 void main() {
-  vec4 cc = texture2D(u_tex, v_uv);
-  vec3 nw = texture2D(u_tex, v_uv + vec2(-1.0, -1.0) * u_texel).rgb;
-  vec3 ne = texture2D(u_tex, v_uv + vec2(1.0, -1.0) * u_texel).rgb;
-  vec3 sw = texture2D(u_tex, v_uv + vec2(-1.0, 1.0) * u_texel).rgb;
-  vec3 se = texture2D(u_tex, v_uv + vec2(1.0, 1.0) * u_texel).rgb;
+    vec4 cc = texture2D(u_tex, v_uv);
+    vec3 nw = texture2D(u_tex, v_uv + vec2(-1.0, -1.0) * u_texel).rgb;
+    vec3 ne = texture2D(u_tex, v_uv + vec2(1.0, -1.0) * u_texel).rgb;
+    vec3 sw = texture2D(u_tex, v_uv + vec2(-1.0, 1.0) * u_texel).rgb;
+    vec3 se = texture2D(u_tex, v_uv + vec2(1.0, 1.0) * u_texel).rgb;
 
-  float lNW = lum(nw);
-  float lNE = lum(ne);
-  float lSW = lum(sw);
-  float lSE = lum(se);
-  float lC = lum(cc.rgb);
-  float lMin = min(lC, min(min(lNW, lNE), min(lSW, lSE)));
-  float lMax = max(lC, max(max(lNW, lNE), max(lSW, lSE)));
+    float lNW = lum(nw);
+    float lNE = lum(ne);
+    float lSW = lum(sw);
+    float lSE = lum(se);
+    float lC = lum(cc.rgb);
+    float lMin = min(lC, min(min(lNW, lNE), min(lSW, lSE)));
+    float lMax = max(lC, max(max(lNW, lNE), max(lSW, lSE)));
 
-  if (lMax - lMin < max(0.03125, lMax * 0.125)) {
-    gl_FragColor = cc;
-    return;
-  }
+    if (lMax - lMin < max(0.03125, lMax * 0.125)) {
+        gl_FragColor = cc;
+        return;
+    }
 
-  vec2 dir = vec2(-((lNW + lNE) - (lSW + lSE)), (lNW + lSW) - (lNE + lSE));
-  float dirReduce = max((lNW + lNE + lSW + lSE) * (0.25 / 8.0), 1.0 / 128.0);
-  float rcpDirMin = 1.0 / (min(abs(dir.x), abs(dir.y)) + dirReduce);
-  dir = clamp(dir * rcpDirMin, vec2(-8.0), vec2(8.0)) * u_texel;
+    vec2 dir = vec2(-((lNW + lNE) - (lSW + lSE)), (lNW + lSW) - (lNE + lSE));
+    float dirReduce = max((lNW + lNE + lSW + lSE) * (0.25 / 8.0), 1.0 / 128.0);
+    float rcpDirMin = 1.0 / (min(abs(dir.x), abs(dir.y)) + dirReduce);
+    dir = clamp(dir * rcpDirMin, vec2(-8.0), vec2(8.0)) * u_texel;
 
-  vec3 rgbA = 0.5 * (
-    texture2D(u_tex, v_uv + dir * (-1.0 / 6.0)).rgb +
-    texture2D(u_tex, v_uv + dir * (1.0 / 6.0)).rgb
-  );
-  vec3 rgbB = rgbA * 0.5 + 0.25 * (
-    texture2D(u_tex, v_uv + dir * -0.5).rgb +
-    texture2D(u_tex, v_uv + dir * 0.5).rgb
-  );
+    vec3 rgbA = 0.5 * (
+        texture2D(u_tex, v_uv + dir * (-1.0 / 6.0)).rgb +
+        texture2D(u_tex, v_uv + dir * (1.0 / 6.0)).rgb
+        );
+    vec3 rgbB = rgbA * 0.5 + 0.25 * (
+        texture2D(u_tex, v_uv + dir * -0.5).rgb +
+        texture2D(u_tex, v_uv + dir * 0.5).rgb
+        );
 
-  float lB = lum(rgbB);
-  gl_FragColor = vec4(((lB < lMin) || (lB > lMax)) ? rgbA : rgbB, 1.0);
+    float lB = lum(rgbB);
+    gl_FragColor = vec4(((lB < lMin) || (lB > lMax)) ? rgbA : rgbB, 1.0);
 }
 `;
 
@@ -724,14 +732,14 @@ uniform float u_amount;
 varying vec2 v_uv;
 
 void main() {
-  vec4 c = texture2D(u_tex, v_uv);
-  vec3 n = texture2D(u_tex, v_uv + vec2(0.0, -u_texel.y)).rgb;
-  vec3 s = texture2D(u_tex, v_uv + vec2(0.0, u_texel.y)).rgb;
-  vec3 e = texture2D(u_tex, v_uv + vec2(u_texel.x, 0.0)).rgb;
-  vec3 w = texture2D(u_tex, v_uv + vec2(-u_texel.x, 0.0)).rgb;
-  vec3 blur = (n + s + e + w) * 0.25;
-  vec3 outColor = c.rgb + (c.rgb - blur) * u_amount;
-  gl_FragColor = vec4(clamp(outColor, 0.0, 1.0), 1.0);
+    vec4 c = texture2D(u_tex, v_uv);
+    vec3 n = texture2D(u_tex, v_uv + vec2(0.0, -u_texel.y)).rgb;
+    vec3 s = texture2D(u_tex, v_uv + vec2(0.0, u_texel.y)).rgb;
+    vec3 e = texture2D(u_tex, v_uv + vec2(u_texel.x, 0.0)).rgb;
+    vec3 w = texture2D(u_tex, v_uv + vec2(-u_texel.x, 0.0)).rgb;
+    vec3 blur = (n + s + e + w) * 0.25;
+    vec3 outColor = c.rgb + (c.rgb - blur) * u_amount;
+    gl_FragColor = vec4(clamp(outColor, 0.0, 1.0), 1.0);
 }
 `;
 
@@ -743,25 +751,25 @@ uniform float u_strength;
 varying vec2 v_uv;
 
 float getLum(vec3 c) {
-  return dot(c, vec3(0.299, 0.587, 0.114));
+    return dot(c, vec3(0.299, 0.587, 0.114));
 }
 
 void main() {
-  vec4 cc = texture2D(u_tex, v_uv);
-  vec3 n = texture2D(u_tex, v_uv + vec2(0.0, -u_pt.y)).rgb;
-  vec3 s = texture2D(u_tex, v_uv + vec2(0.0, u_pt.y)).rgb;
-  vec3 w = texture2D(u_tex, v_uv + vec2(-u_pt.x, 0.0)).rgb;
-  vec3 e = texture2D(u_tex, v_uv + vec2(u_pt.x, 0.0)).rgb;
-  vec3 nw = texture2D(u_tex, v_uv + vec2(-u_pt.x, -u_pt.y)).rgb;
-  vec3 ne = texture2D(u_tex, v_uv + vec2(u_pt.x, -u_pt.y)).rgb;
-  vec3 sw = texture2D(u_tex, v_uv + vec2(-u_pt.x, u_pt.y)).rgb;
-  vec3 se = texture2D(u_tex, v_uv + vec2(u_pt.x, u_pt.y)).rgb;
+    vec4 cc = texture2D(u_tex, v_uv);
+    vec3 n = texture2D(u_tex, v_uv + vec2(0.0, -u_pt.y)).rgb;
+    vec3 s = texture2D(u_tex, v_uv + vec2(0.0, u_pt.y)).rgb;
+    vec3 w = texture2D(u_tex, v_uv + vec2(-u_pt.x, 0.0)).rgb;
+    vec3 e = texture2D(u_tex, v_uv + vec2(u_pt.x, 0.0)).rgb;
+    vec3 nw = texture2D(u_tex, v_uv + vec2(-u_pt.x, -u_pt.y)).rgb;
+    vec3 ne = texture2D(u_tex, v_uv + vec2(u_pt.x, -u_pt.y)).rgb;
+    vec3 sw = texture2D(u_tex, v_uv + vec2(-u_pt.x, u_pt.y)).rgb;
+    vec3 se = texture2D(u_tex, v_uv + vec2(u_pt.x, u_pt.y)).rgb;
 
-  vec3 avg = (n + s + w + e + nw + ne + sw + se) / 8.0;
-  float diff = abs(getLum(cc.rgb) - getLum(avg));
-  float flat_ = 1.0 - smoothstep(0.02, 0.10, diff);
-  vec3 outp = mix(cc.rgb, avg, clamp(u_strength * flat_, 0.0, 1.0));
-  gl_FragColor = vec4(outp, 1.0);
+    vec3 avg = (n + s + w + e + nw + ne + sw + se) / 8.0;
+    float diff = abs(getLum(cc.rgb) - getLum(avg));
+    float flat_ = 1.0 - smoothstep(0.02, 0.10, diff);
+    vec3 outp = mix(cc.rgb, avg, clamp(u_strength * flat_, 0.0, 1.0));
+    gl_FragColor = vec4(outp, 1.0);
 }
 `;
 
@@ -770,7 +778,7 @@ precision highp float;
 uniform sampler2D u_tex;
 varying vec2 v_uv;
 void main() {
-  gl_FragColor = vec4(texture2D(u_tex, vec2(v_uv.x, 1.0 - v_uv.y)).rgb, 1.0);
+    gl_FragColor = vec4(texture2D(u_tex, vec2(v_uv.x, 1.0 - v_uv.y)).rgb, 1.0);
 }
 `;
 
@@ -1272,280 +1280,592 @@ void main() {
 
     const PANEL_HTML = `
 <style>
-:host { all: initial; }
-* { box-sizing: border-box; margin: 0; padding: 0; }
-.wrap {
-  position: relative; width: 32px; height: 32px; pointer-events: auto;
-  font: 12px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
-  color: #fff; -webkit-font-smoothing: antialiased;
-}
-.btn {
-  position: relative; width: 32px; height: 32px; border-radius: 50%; pointer-events: auto;
-  border: 1px solid rgba(255,255,255,.45); background: #000; color: #fff;
-  font: 700 11px/1 "Segoe UI", "Microsoft YaHei", sans-serif;
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  opacity: .5; transition: opacity .18s, border-color .18s, box-shadow .18s;
-  padding: 0; outline: none;
-}
-.btn:hover { opacity: 1; }
-.wrap.awake .btn, .wrap.open .btn { opacity: 1; }
-.wrap.idle { pointer-events: none; }
-.wrap.idle .btn { opacity: 0; pointer-events: none; }
-.wrap.on .btn { border-color: #fff; box-shadow: 0 0 0 1px rgba(255,255,255,.28); }
-.wrap.off .btn .txt { opacity: .55; }
-.dot {
-  position: absolute; right: -1px; bottom: -1px; width: 8px; height: 8px;
-  border-radius: 50%; background: #555; border: 1px solid #000;
-}
-.wrap.on .dot { background: #fff; }
-.wrap.warn .dot { background: #e6c229; }
-.wrap.err .dot { background: #e5484d; }
-.panel {
-  display: none; position: absolute; left: 0; top: 40px; width: 278px; pointer-events: auto;
-  max-height: min(72vh, 540px); overflow: auto;
-  background: #000; border: 1px solid #2b2b2b; border-radius: 10px;
-  box-shadow: 0 12px 32px rgba(0,0,0,.75); padding: 10px 12px 9px;
-}
-.wrap.open .panel { display: block; }
-.panel::-webkit-scrollbar { width: 6px; }
-.panel::-webkit-scrollbar-thumb { background: #2f2f2f; border-radius: 3px; }
-.head { display: flex; align-items: center; gap: 6px; margin-bottom: 7px; }
-.brand { font-weight: 700; font-size: 13px; letter-spacing: .2px; }
-.ver { color: #5a5a5a; font-size: 10px; font-weight: 400; }
-.chip {
-  font-size: 10px; line-height: 1; padding: 3px 6px; border: 1px solid #3a3a3a;
-  border-radius: 99px; color: #b9b9b9; white-space: nowrap;
-}
-.chip.on { color: #fff; border-color: #8a8a8a; }
-.close {
-  margin-left: auto; width: 22px; height: 22px; border: 0; background: transparent;
-  color: #8a8a8a; font-size: 16px; line-height: 1; cursor: pointer; padding: 0;
-}
-.close:hover { color: #fff; }
-.row {
-  display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  padding: 5px 0; border-top: 1px solid #141414;
-}
-.row:nth-of-type(1) { border-top: 0; }
-.row.col { display: block; }
-.lab { color: #d8d8d8; font-size: 12px; }
-.labline { display: flex; align-items: baseline; justify-content: space-between; }
-.val { color: #8a8a8a; font-size: 11px; font-variant-numeric: tabular-nums; }
-.seg {
-  display: flex; border: 1px solid #2e2e2e; border-radius: 7px;
-  overflow: hidden; margin-top: 5px;
-}
-.seg button {
-  flex: 1; background: #000; border: 0; color: #9a9a9a; padding: 5px 0;
-  font: inherit; font-size: 11px; cursor: pointer; outline: none;
-}
-.seg button.on { background: #fff; color: #000; }
-select {
-  background: #000; border: 1px solid #333; color: #fff; border-radius: 6px;
-  padding: 3px 6px; font: inherit; font-size: 11px; outline: none;
-}
-input[type=range] { width: 100%; margin: 6px 0 0; accent-color: #fff; height: 16px; }
-.sw { position: relative; display: inline-block; width: 34px; height: 18px; flex: 0 0 auto; }
-.sw input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
-.sw i {
-  position: absolute; inset: 0; background: #242424; border: 1px solid #3a3a3a;
-  border-radius: 99px; transition: .15s; pointer-events: none;
-}
-.sw i::after {
-  content: ""; position: absolute; left: 2px; top: 2px; width: 12px; height: 12px;
-  border-radius: 50%; background: #777; transition: .15s;
-}
-.sw input:checked + i { background: #fff; border-color: #fff; }
-.sw input:checked + i::after { left: 18px; background: #000; }
-details.adv { margin-top: 6px; border-top: 1px solid #141414; padding-top: 6px; }
-details.adv summary { cursor: pointer; color: #9a9a9a; font-size: 11px; list-style: none; }
-details.adv[open] summary { color: #fff; margin-bottom: 2px; }
-details.adv summary::-webkit-details-marker { display: none; }
-details.adv .arrow {
-  display: inline-block; margin-right: 4px; font-size: 9px;
-  transition: transform .15s; transform-origin: 50% 50%;
-}
-details.adv[open] .arrow { transform: rotate(90deg); }
-.info {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 13px; height: 13px; border-radius: 50%;
-  border: 1px solid #4a4a4a; color: #8a8a8a; font-size: 9px; line-height: 1;
-  cursor: help; margin-left: 3px; vertical-align: 1px; font-style: normal; font-weight: 400;
-}
-.info:hover { color: #fff; border-color: #999; }
-.tip {
-  position: fixed; z-index: 2147483647; max-width: 238px;
-  padding: 7px 9px; background: #000; border: 1px solid #333; border-radius: 6px;
-  color: #ddd; font: 11px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, .7); pointer-events: none; display: none; white-space: normal;
-}
-.tip.show { display: block; }
-.warnline {
-  display: none; margin: 7px 0 0; padding: 5px 7px; border: 1px solid #4a3f12;
-  background: #171204; color: #e6c229; font-size: 11px; border-radius: 6px;
-}
-.warnline.show { display: block; }
-.stats-chip {
-  display: none; position: absolute; left: 40px; top: 3px;
-  padding: 3px 7px; background: rgba(0, 0, 0, .72); border: 1px solid #2b2b2b;
-  border-radius: 6px; color: #d8d8d8;
-  font: 10px/1.3 "Cascadia Mono", Consolas, "Microsoft YaHei", monospace;
-  white-space: nowrap; pointer-events: none; font-variant-numeric: tabular-nums;
-}
-.stats-chip.show { display: block; }
-.toast { color: #9a9a9a; font-size: 10px; margin-top: 6px; min-height: 13px; }
-.foot { display: flex; gap: 8px; margin-top: 8px; }
-.foot button {
-  flex: 1; background: #111; border: 1px solid #333; color: #ccc;
-  font: inherit; font-size: 11px; padding: 5px 0; border-radius: 6px; cursor: pointer;
-}
-.foot button:hover { background: #1c1c1c; color: #fff; }
+    :host {
+        all: initial;
+    }
+
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    .wrap {
+        position: relative;
+        width: 32px;
+        height: 32px;
+        pointer-events: auto;
+        font: 12px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+        color: #fff;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    .btn {
+        position: relative;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        pointer-events: auto;
+        border: 1px solid rgba(255, 255, 255, .45);
+        background: #000;
+        color: #fff;
+        font: 700 11px/1 "Segoe UI", "Microsoft YaHei", sans-serif;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: .5;
+        transition: opacity .18s, border-color .18s, box-shadow .18s;
+        padding: 0;
+        outline: none;
+    }
+
+    .btn:hover {
+        opacity: 1;
+    }
+
+    .wrap.awake .btn,
+    .wrap.open .btn {
+        opacity: 1;
+    }
+
+    .wrap.idle {
+        pointer-events: none;
+    }
+
+    .wrap.idle .btn {
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .wrap.on .btn {
+        border-color: #fff;
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, .28);
+    }
+
+    .wrap.off .btn .txt {
+        opacity: .55;
+    }
+
+    .dot {
+        position: absolute;
+        right: -1px;
+        bottom: -1px;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #555;
+        border: 1px solid #000;
+    }
+
+    .wrap.on .dot {
+        background: #fff;
+    }
+
+    .wrap.warn .dot {
+        background: #e6c229;
+    }
+
+    .wrap.err .dot {
+        background: #e5484d;
+    }
+
+    .panel {
+        display: none;
+        position: absolute;
+        left: 0;
+        top: 40px;
+        width: 278px;
+        pointer-events: auto;
+        max-height: min(72vh, 540px);
+        overflow: auto;
+        background: #000;
+        border: 1px solid #2b2b2b;
+        border-radius: 10px;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, .75);
+        padding: 10px 12px 9px;
+    }
+
+    .wrap.open .panel {
+        display: block;
+    }
+
+    .panel::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .panel::-webkit-scrollbar-thumb {
+        background: #2f2f2f;
+        border-radius: 3px;
+    }
+
+    .head {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 7px;
+    }
+
+    .brand {
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: .2px;
+    }
+
+    .ver {
+        color: #5a5a5a;
+        font-size: 10px;
+        font-weight: 400;
+    }
+
+    .chip {
+        font-size: 10px;
+        line-height: 1;
+        padding: 3px 6px;
+        border: 1px solid #3a3a3a;
+        border-radius: 99px;
+        color: #b9b9b9;
+        white-space: nowrap;
+    }
+
+    .chip.on {
+        color: #fff;
+        border-color: #8a8a8a;
+    }
+
+    .close {
+        margin-left: auto;
+        width: 22px;
+        height: 22px;
+        border: 0;
+        background: transparent;
+        color: #8a8a8a;
+        font-size: 16px;
+        line-height: 1;
+        cursor: pointer;
+        padding: 0;
+    }
+
+    .close:hover {
+        color: #fff;
+    }
+
+    .row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 5px 0;
+        border-top: 1px solid #141414;
+    }
+
+    .row:nth-of-type(1) {
+        border-top: 0;
+    }
+
+    .row.col {
+        display: block;
+    }
+
+    .lab {
+        color: #d8d8d8;
+        font-size: 12px;
+    }
+
+    .labline {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+    }
+
+    .val {
+        color: #8a8a8a;
+        font-size: 11px;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .seg {
+        display: flex;
+        border: 1px solid #2e2e2e;
+        border-radius: 7px;
+        overflow: hidden;
+        margin-top: 5px;
+    }
+
+    .seg button {
+        flex: 1;
+        background: #000;
+        border: 0;
+        color: #9a9a9a;
+        padding: 5px 0;
+        font: inherit;
+        font-size: 11px;
+        cursor: pointer;
+        outline: none;
+    }
+
+    .seg button.on {
+        background: #fff;
+        color: #000;
+    }
+
+    select {
+        background: #000;
+        border: 1px solid #333;
+        color: #fff;
+        border-radius: 6px;
+        padding: 3px 6px;
+        font: inherit;
+        font-size: 11px;
+        outline: none;
+    }
+
+    input[type=range] {
+        width: 100%;
+        margin: 6px 0 0;
+        accent-color: #fff;
+        height: 16px;
+    }
+
+    .sw {
+        position: relative;
+        display: inline-block;
+        width: 34px;
+        height: 18px;
+        flex: 0 0 auto;
+    }
+
+    .sw input {
+        position: absolute;
+        opacity: 0;
+        inset: 0;
+        margin: 0;
+        cursor: pointer;
+    }
+
+    .sw i {
+        position: absolute;
+        inset: 0;
+        background: #242424;
+        border: 1px solid #3a3a3a;
+        border-radius: 99px;
+        transition: .15s;
+        pointer-events: none;
+    }
+
+    .sw i::after {
+        content: "";
+        position: absolute;
+        left: 2px;
+        top: 2px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #777;
+        transition: .15s;
+    }
+
+    .sw input:checked+i {
+        background: #fff;
+        border-color: #fff;
+    }
+
+    .sw input:checked+i::after {
+        left: 18px;
+        background: #000;
+    }
+
+    details.adv {
+        margin-top: 6px;
+        border-top: 1px solid #141414;
+        padding-top: 6px;
+    }
+
+    details.adv summary {
+        cursor: pointer;
+        color: #9a9a9a;
+        font-size: 11px;
+        list-style: none;
+    }
+
+    details.adv[open] summary {
+        color: #fff;
+        margin-bottom: 2px;
+    }
+
+    details.adv summary::-webkit-details-marker {
+        display: none;
+    }
+
+    details.adv .arrow {
+        display: inline-block;
+        margin-right: 4px;
+        font-size: 9px;
+        transition: transform .15s;
+        transform-origin: 50% 50%;
+    }
+
+    details.adv[open] .arrow {
+        transform: rotate(90deg);
+    }
+
+    .info {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        border: 1px solid #4a4a4a;
+        color: #8a8a8a;
+        font-size: 9px;
+        line-height: 1;
+        cursor: help;
+        margin-left: 3px;
+        vertical-align: 1px;
+        font-style: normal;
+        font-weight: 400;
+    }
+
+    .info:hover {
+        color: #fff;
+        border-color: #999;
+    }
+
+    .tip {
+        position: fixed;
+        z-index: 2147483647;
+        max-width: 238px;
+        padding: 7px 9px;
+        background: #000;
+        border: 1px solid #333;
+        border-radius: 6px;
+        color: #ddd;
+        font: 11px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, .7);
+        pointer-events: none;
+        display: none;
+        white-space: normal;
+    }
+
+    .tip.show {
+        display: block;
+    }
+
+    .warnline {
+        display: none;
+        margin: 7px 0 0;
+        padding: 5px 7px;
+        border: 1px solid #4a3f12;
+        background: #171204;
+        color: #e6c229;
+        font-size: 11px;
+        border-radius: 6px;
+    }
+
+    .warnline.show {
+        display: block;
+    }
+
+    .stats-chip {
+        display: none;
+        position: absolute;
+        left: 40px;
+        top: 3px;
+        padding: 3px 7px;
+        background: rgba(0, 0, 0, .72);
+        border: 1px solid #2b2b2b;
+        border-radius: 6px;
+        color: #d8d8d8;
+        font: 10px/1.3 "Cascadia Mono", Consolas, "Microsoft YaHei", monospace;
+        white-space: nowrap;
+        pointer-events: none;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .stats-chip.show {
+        display: block;
+    }
+
+    .toast {
+        color: #9a9a9a;
+        font-size: 10px;
+        margin-top: 6px;
+        min-height: 13px;
+    }
+
+    .foot {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+    }
+
+    .foot button {
+        flex: 1;
+        background: #111;
+        border: 1px solid #333;
+        color: #ccc;
+        font: inherit;
+        font-size: 11px;
+        padding: 5px 0;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+
+    .foot button:hover {
+        background: #1c1c1c;
+        color: #fff;
+    }
 </style>
+
 <div class="wrap">
-  <button class="btn" type="button" title="Anime4K 设置"><span class="txt">4K</span><i class="dot"></i></button>
-  <div class="panel" role="dialog" aria-label="Anime4K 设置">
-    <div class="head">
-      <span class="brand">Anime4K</span><span class="ver">v3</span>
-      <span class="chip prof">普通视频</span>
-      <span class="chip state">已关闭</span>
-      <button class="close" type="button" title="关闭">×</button>
-    </div>
-    <div class="row">
-      <span class="lab">启用滤镜</span>
-      <label class="sw"><input type="checkbox" data-k="enabled"><i></i></label>
-    </div>
-    <div class="row col">
-      <div class="labline">
-        <span class="lab">主模式
-          <span class="info" data-tip="A：针对高模糊、压缩伪影较多的 1080p 动画，线条还原最强。B：针对中等伪影的 720p 或部分 1080p，还原更克制、保留纹理。C：针对本身干净的高质量源，只做轻降噪和放大，不做线条重建。">ⓘ</span>
-        </span>
-      </div>
-      <div class="seg" data-seg="mode">
-        <button type="button" data-v="A">A</button>
-        <button type="button" data-v="B">B</button>
-        <button type="button" data-v="C">C</button>
-      </div>
-    </div>
-    <div class="row col">
-      <div class="labline">
-        <span class="lab">次要模式
-          <span class="info" data-tip="在第一层之后再叠加一层还原，可单独选择 A/B/C。A+A 效果最强也最慢；B+B 更保守；C 可前置降噪。选“无”只跑一层。">ⓘ</span>
-        </span>
-      </div>
-      <div class="seg" data-seg="secondary">
-        <button type="button" data-v="none">无</button>
-        <button type="button" data-v="A">A</button>
-        <button type="button" data-v="B">B</button>
-        <button type="button" data-v="C">C</button>
-      </div>
-    </div>
-    <div class="row col">
-      <div class="labline">
-        <span class="lab">质量档位
-          <span class="info" data-tip="近似 Anime4K 的 CNN 变体：S 最快；每升一档内部超采样倍率更高、线条更干净，GPU 开销约翻倍（S 0.8× / M 1× / L 1.2× / VL 1.45× / UL 1.75×）。">ⓘ</span>
-        </span>
-      </div>
-      <div class="seg" data-seg="variant">
-        <button type="button" data-v="S">S</button>
-        <button type="button" data-v="M">M</button>
-        <button type="button" data-v="L">L</button>
-        <button type="button" data-v="VL">VL</button>
-        <button type="button" data-v="UL">UL</button>
-      </div>
-    </div>
-    <div class="row col">
-      <div class="labline">
-        <span class="lab">还原强度
-          <span class="info" data-tip="线条还原与细化的总幅度。越高线条越细越亮，画质提升越明显；过高会发灰、出现振铃。">ⓘ</span>
-          <span class="val" data-out="strength">80%</span>
-        </span>
-      </div>
-      <input type="range" data-k="strength" min="0" max="100" step="5">
-    </div>
-    <div class="row">
-      <span class="lab">输出分辨率
-        <span class="info" data-tip="自动按播放器尺寸在 1440P–2160P 间选择；2160P 会做超采样。质量档位会在此基础上再乘内部倍率。">ⓘ</span>
-      </span>
-      <select data-k="output">
-        <option value="auto">自动</option>
-        <option value="native">原生</option>
-        <option value="1080">1080P</option>
-        <option value="1440">1440P</option>
-        <option value="2160">2160P</option>
-      </select>
-    </div>
-    <div class="row col">
-      <span class="lab">帧率上限
-        <span class="info" data-tip="渲染帧率上限。24fps 动画用 30 足够；60 更跟手，但 GPU 压力更大。">ⓘ</span>
-      </span>
-      <div class="seg" data-seg="fps">
-        <button type="button" data-v="auto">自动</button>
-        <button type="button" data-v="30">30</button>
-        <button type="button" data-v="60">60</button>
-      </div>
-    </div>
-    <details class="adv">
-      <summary><span class="arrow">▸</span>高级参数</summary>
-      <div class="row">
-        <span class="lab">FXAA 抗锯齿
-          <span class="info" data-tip="边缘抗锯齿。开启更平滑，关闭更锐利但锯齿更明显。">ⓘ</span>
-        </span>
-        <label class="sw"><input type="checkbox" data-k="fxaa"><i></i></label>
-      </div>
-      <div class="row">
-        <span class="lab">放大算法
-          <span class="info" data-tip="双线性最柔和、最快；双三次平衡；Lanczos3 最锐，可能产生白边。">ⓘ</span>
-        </span>
-        <select data-k="upscale">
-          <option value="bilinear">双线性</option>
-          <option value="bicubic">双三次</option>
-          <option value="lanczos3">Lanczos3</option>
-        </select>
-      </div>
-      <div class="row col">
-        <div class="labline">
-          <span class="lab">锐化
-            <span class="info" data-tip="后处理 unsharp。用于补偿还原带来的对比度下降，过高会出现白边/黑边。">ⓘ</span>
-          </span>
-          <span class="val" data-out="sharpen">60%</span>
+    <button class="btn" type="button" title="Anime4K 设置"><span class="txt">4K</span><i class="dot"></i></button>
+    <div class="panel" role="dialog" aria-label="Anime4K 设置">
+        <div class="head">
+            <span class="brand">Anime4K</span><span class="ver">v3</span>
+            <span class="chip prof">普通视频</span>
+            <span class="chip state">已关闭</span>
+            <button class="close" type="button" title="关闭">×</button>
         </div>
-        <input type="range" data-k="sharpen" min="0" max="100" step="5">
-      </div>
-      <div class="row col">
-        <div class="labline">
-          <span class="lab">线条检测灵敏度
-            <span class="info" data-tip="越高参与还原的线条越多，效果更明显，也更容易误伤纹理。">ⓘ</span>
-          </span>
-          <span class="val" data-out="lineThreshold">85%</span>
+        <div class="row">
+            <span class="lab">启用滤镜</span>
+            <label class="sw"><input type="checkbox" data-k="enabled"><i></i></label>
         </div>
-        <input type="range" data-k="lineThreshold" min="0" max="100" step="5">
-      </div>
-      <div class="row">
-        <span class="lab">性能保护
-          <span class="info" data-tip="单帧渲染超预算时自动降低内部渲染分辨率，避免掉帧。">ⓘ</span>
-        </span>
-        <label class="sw"><input type="checkbox" data-k="perfGuard"><i></i></label>
-      </div>
-      <div class="row">
-        <span class="lab">显示统计
-          <span class="info" data-tip="在按钮右侧显示模式、分辨率、fps 与 GPU 耗时。">ⓘ</span>
-        </span>
-        <label class="sw"><input type="checkbox" data-k="showStats"><i></i></label>
-      </div>
-      <div class="row">
-        <span class="lab">HDR 内容强制启用
-          <span class="info" data-tip="识别到 HDR/杜比内容时默认暂停；强制开启可能偏色。">ⓘ</span>
-        </span>
-        <label class="sw"><input type="checkbox" data-k="forceHdr"><i></i></label>
-      </div>
-    </details>
-    <div class="warnline"></div>
-    <div class="toast"></div>
-    <div class="foot">
-      <button type="button" data-act="reset">恢复默认</button>
-      <button type="button" data-act="close">关闭面板</button>
+        <div class="row col">
+            <div class="labline">
+                <span class="lab">主模式
+                    <span class="info"
+                        data-tip="A：针对高模糊、压缩伪影较多的 1080p 动画，线条还原最强。B：针对中等伪影的 720p 或部分 1080p，还原更克制、保留纹理。C：针对本身干净的高质量源，只做轻降噪和放大，不做线条重建。">i</span>
+                </span>
+            </div>
+            <div class="seg" data-seg="mode">
+                <button type="button" data-v="A">A</button>
+                <button type="button" data-v="B">B</button>
+                <button type="button" data-v="C">C</button>
+            </div>
+        </div>
+        <div class="row col">
+            <div class="labline">
+                <span class="lab">次要模式
+                    <span class="info"
+                        data-tip="在第一层之后再叠加一层还原，可单独选择 A/B/C。A+A 效果最强也最慢；B+B 更保守；C 可前置降噪。选“无”只跑一层。">i</span>
+                </span>
+            </div>
+            <div class="seg" data-seg="secondary">
+                <button type="button" data-v="none">无</button>
+                <button type="button" data-v="A">A</button>
+                <button type="button" data-v="B">B</button>
+                <button type="button" data-v="C">C</button>
+            </div>
+        </div>
+        <div class="row col">
+            <div class="labline">
+                <span class="lab">质量档位
+                    <span class="info"
+                        data-tip="近似 Anime4K 的 CNN 变体：S 最快；每升一档内部超采样倍率更高、线条更干净，GPU 开销约翻倍（S 0.8× / M 1× / L 1.2× / VL 1.45× / UL 1.75×）。">i</span>
+                </span>
+            </div>
+            <div class="seg" data-seg="variant">
+                <button type="button" data-v="S">S</button>
+                <button type="button" data-v="M">M</button>
+                <button type="button" data-v="L">L</button>
+                <button type="button" data-v="VL">VL</button>
+                <button type="button" data-v="UL">UL</button>
+            </div>
+        </div>
+        <div class="row col">
+            <div class="labline">
+                <span class="lab">还原强度
+                    <span class="info" data-tip="线条还原与细化的总幅度。越高线条越细越亮，画质提升越明显；过高会发灰、出现振铃。">i</span>
+                    <span class="val" data-out="strength">80%</span>
+                </span>
+            </div>
+            <input type="range" data-k="strength" min="0" max="100" step="5">
+        </div>
+        <div class="row">
+            <span class="lab">输出分辨率
+                <span class="info" data-tip="自动按播放器尺寸在 1440P–2160P 间选择；2160P 会做超采样。质量档位会在此基础上再乘内部倍率。">i</span>
+            </span>
+            <select data-k="output">
+                <option value="auto">自动</option>
+                <option value="native">原生</option>
+                <option value="1080">1080P</option>
+                <option value="1440">1440P</option>
+                <option value="2160">2160P</option>
+            </select>
+        </div>
+        <div class="row col">
+            <span class="lab">帧率上限
+                <span class="info" data-tip="渲染帧率上限。24fps 动画用 30 足够；60 更跟手，但 GPU 压力更大。">i</span>
+            </span>
+            <div class="seg" data-seg="fps">
+                <button type="button" data-v="auto">自动</button>
+                <button type="button" data-v="30">30</button>
+                <button type="button" data-v="60">60</button>
+            </div>
+        </div>
+        <details class="adv">
+            <summary><span class="arrow">▸</span>高级参数</summary>
+            <div class="row">
+                <span class="lab">FXAA 抗锯齿
+                    <span class="info" data-tip="边缘抗锯齿。开启更平滑，关闭更锐利但锯齿更明显。">i</span>
+                </span>
+                <label class="sw"><input type="checkbox" data-k="fxaa"><i></i></label>
+            </div>
+            <div class="row">
+                <span class="lab">放大算法
+                    <span class="info" data-tip="双线性最柔和、最快；双三次平衡；Lanczos3 最锐，可能产生白边。">i</span>
+                </span>
+                <select data-k="upscale">
+                    <option value="bilinear">双线性</option>
+                    <option value="bicubic">双三次</option>
+                    <option value="lanczos3">Lanczos3</option>
+                </select>
+            </div>
+            <div class="row col">
+                <div class="labline">
+                    <span class="lab">锐化
+                        <span class="info" data-tip="后处理 unsharp。用于补偿还原带来的对比度下降，过高会出现白边/黑边。">i</span>
+                    </span>
+                    <span class="val" data-out="sharpen">60%</span>
+                </div>
+                <input type="range" data-k="sharpen" min="0" max="100" step="5">
+            </div>
+            <div class="row col">
+                <div class="labline">
+                    <span class="lab">线条检测灵敏度
+                        <span class="info" data-tip="越高参与还原的线条越多，效果更明显，也更容易误伤纹理。">i</span>
+                    </span>
+                    <span class="val" data-out="lineThreshold">85%</span>
+                </div>
+                <input type="range" data-k="lineThreshold" min="0" max="100" step="5">
+            </div>
+            <div class="row">
+                <span class="lab">性能保护
+                    <span class="info" data-tip="单帧渲染超预算时自动降低内部渲染分辨率，避免掉帧。">i</span>
+                </span>
+                <label class="sw"><input type="checkbox" data-k="perfGuard"><i></i></label>
+            </div>
+            <div class="row">
+                <span class="lab">显示统计
+                    <span class="info" data-tip="在按钮右侧显示模式、分辨率、fps 与 GPU 耗时。">i</span>
+                </span>
+                <label class="sw"><input type="checkbox" data-k="showStats"><i></i></label>
+            </div>
+            <div class="row">
+                <span class="lab">HDR 内容强制启用
+                    <span class="info" data-tip="识别到 HDR/杜比内容时默认暂停；强制开启可能偏色。">i</span>
+                </span>
+                <label class="sw"><input type="checkbox" data-k="forceHdr"><i></i></label>
+            </div>
+        </details>
+        <div class="warnline"></div>
+        <div class="toast"></div>
+        <div class="foot">
+            <button type="button" data-act="reset">恢复默认</button>
+            <button type="button" data-act="close">关闭面板</button>
+        </div>
     </div>
-  </div>
 </div>
 <div class="stats-chip"></div>
 <div class="tip"></div>
