@@ -40,7 +40,7 @@ async function shot(name) {
 }
 
 try {
-  const target = await newTarget(edge.base, `${BASE}/video?bilia4k-test=1`);
+  const target = await newTarget(edge.base, `${BASE}/video?bilia4k-test=1&bilia4k-test-profile=video`);
   cdp = new CDP(target.webSocketDebuggerUrl);
   await cdp.ready;
   await cdp.send('Runtime.enable');
@@ -64,15 +64,30 @@ try {
   await sleep(400);
   await shot('filtered.png');
 
-  await cdp.send('Page.navigate', { url: `${BASE}/bangumi/play/ep1?bilia4k-test=1` });
+  await cdp.send('Page.navigate', { url: `${BASE}/bangumi/play/ep1?bilia4k-test=1&bilia4k-test-profile=bangumi` });
   await waitReady();
   const r2 = await cdp.eval('window.__runA4K("bangumi")');
 
   await cdp.send('Page.navigate', { url: `${BASE}/video?bilia4k-test=1` });
   await waitReady();
-  const r3 = await cdp.eval('window.__runA4K("video-reload")');
+  const r3 = await cdp.eval('window.__runA4K("site-initial")');
 
-  const all = [...r1.results, ...r2.results, ...r3.results];
+  await cdp.send('Page.navigate', { url: `${BASE}/generic?bilia4k-test=1` });
+  await waitReady();
+  const r4 = await cdp.eval('window.__runA4K("generic-initial")');
+  await sleep(300);
+  await shot('generic-panel.png');
+  await cdp.eval('window.__BILI_A4K__.openPanel(false)');
+
+  await cdp.send('Page.navigate', { url: `${BASE}/video?bilia4k-test=1&bilia4k-test-profile=video` });
+  await waitReady();
+  const r5 = await cdp.eval('window.__runA4K("video-reload")');
+
+  await cdp.send('Page.navigate', { url: `${BASE}/video?bilia4k-test=1` });
+  await waitReady();
+  const r6 = await cdp.eval('window.__runA4K("site-reload")');
+
+  const all = [...r1.results, ...r2.results, ...r3.results, ...r4.results, ...r5.results, ...r6.results];
   let fails = 0;
   for (const r of all) {
     if (!r.pass) fails++;
@@ -81,6 +96,8 @@ try {
   console.log(`\n${all.length - fails}/${all.length} passed`);
   console.log('status video:', JSON.stringify(r1.status));
   console.log('status bangumi:', JSON.stringify(r2.status));
+  console.log('status site:', JSON.stringify(r3.status));
+  console.log('status generic:', JSON.stringify(r4.status));
   if (errors.length) {
     console.log('\nerrors:');
     for (const e of errors.slice(0, 12)) console.log('  ' + e);

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Bilibili-Anime4K generic harness</title>
+<style>
+  html, body { margin: 0; background: #111; color: #fff; font: 13px/1.5 "Segoe UI", sans-serif; }
+  #player {
+    position: relative; width: 960px; height: 540px; margin: 40px auto; background: #000;
+    box-shadow: 0 0 0 1px #333;
+  }
+  #player video { width: 100%; height: 100%; object-fit: contain; display: block; }
+  #site-controls {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 44px;
+    display: flex; align-items: center; gap: 8px; padding: 0 12px;
+    background: rgba(0, 0, 0, .65);
+  }
+  #spacer { height: 900px; }
+</style>
+</head>
+<body>
+  <div id="player">
+    <video id="v" src="/test.mp4" muted loop autoplay playsinline controls></video>
+    <div id="site-controls"><button id="pp" type="button">站点控件</button></div>
+  </div>
+  <div id="spacer"></div>
+
+  <script src="/test/seed.js"></script>
+  <script src="/Bilibili-Anime4K.user.js"></script>
+  <script src="/test/harness.js"></script>
+</body>
+</html>

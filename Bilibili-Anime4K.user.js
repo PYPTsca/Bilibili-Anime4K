@@ -7,14 +7,13 @@
 // @downloadURL  https://raw.githubusercontent.com/PYPTsca/Bilibili-Anime4K/main/Bilibili-Anime4K.user.js
 // @updateURL    https://raw.githubusercontent.com/PYPTsca/Bilibili-Anime4K/main/Bilibili-Anime4K.user.js
 // @author       PYPTsca, net2cn, bloc97 and Anime4K contributors
-// @version      3.0.0
-// @description  在 B 站视频/番剧的视频播放器上启用 Anime4K WebGL 实时画质增强，支持 A/B/C 模式、次要模式、S–UL 质量档位与分场景配置。
-// @description:en  Real-time Anime4K WebGL enhancement for Bilibili video/anime player, with A/B/C mode system and per-scene profiles.
+// @version      3.1.1
+// @description  在 B 站及任意网站的视频播放器上启用 Anime4K WebGL 实时画质增强，支持 A/B/C 模式、次要模式、S–UL 质量档位与按域名保存配置。
+// @description:en  Real-time Anime4K WebGL enhancement for any video player, including Bilibili, with A/B/C modes and per-domain profiles.
 // @copyright    2019 bloc97 (Anime4K); net2cn (Bilibili_Anime4K); 2026 PYPTsca
 // @license      MIT
 // @icon         data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%226%22%20fill%3D%22%23000%22%2F%3E%3Ctext%20x%3D%2216%22%20y%3D%2221%22%20font-family%3D%22Arial%22%20font-size%3D%2212%22%20font-weight%3D%22bold%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3E4K%3C%2Ftext%3E%3C%2Fsvg%3E
-// @match        *://www.bilibili.com/*
-// @match        *://player.bilibili.com/*
+// @match        *://*/*
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_registerMenuCommand
@@ -28,7 +27,7 @@
     // 0. 环境检查
     // ---------------------------------------------------------------------------
 
-    const VERSION = "3.0.0";
+    const VERSION = "3.1.1";
     const TEST_MODE = /[?&]bilia4k-test=1(?:&|$)/.test(location.search);
     const UI_HOST_ATTR = "data-bilia4k-ui";
 
@@ -118,6 +117,7 @@
 
     const STORAGE_KEY = "bilia4k.config.v3";
     const PROFILE_KEYS = ["video", "bangumi"];
+    const SITE_PREFIX = "site:";
     const PROFILE_LABEL = { video: "普通视频", bangumi: "番剧" };
     const MODE_LABEL = { A: "A", B: "B", C: "C" };
     const SECONDARY_LABEL = { none: "无", A: "A", B: "B", C: "C" };
@@ -163,7 +163,7 @@
     const BASE_CONFIG = Object.freeze({
         enabled: false,
         mode: "A",
-        secondary: "A",
+        secondary: "none",
         variant: "UL",
         strength: 80,
         output: "2160",
@@ -178,9 +178,12 @@
     });
 
     function defaultConfig(profile) {
-        return Object.assign({}, BASE_CONFIG, {
+        const base = Object.assign({}, BASE_CONFIG, {
             enabled: profile === "bangumi",
         });
+        // 其他站点默认关闭，且默认不在画面上常驻按钮，鼠标移入播放器时才出现。
+        if (profile.indexOf(SITE_PREFIX) === 0) base.showStats = false;
+        return base;
     }
 
     function normalizeConfig(raw, profile) {
@@ -269,13 +272,28 @@
         load() {
             const raw = storageGet(STORAGE_KEY, null);
             const out = {};
-            for (const key of PROFILE_KEYS) {
+            const keys = new Set(PROFILE_KEYS);
+            if (raw && typeof raw === "object") {
+                for (const key of Object.keys(raw)) {
+                    if (
+                        key === "video" ||
+                        key === "bangumi" ||
+                        key.indexOf(SITE_PREFIX) === 0
+                    ) {
+                        keys.add(key);
+                    }
+                }
+            }
+            for (const key of keys) {
                 out[key] = normalizeConfig(raw && raw[key], key);
             }
             return out;
         }
 
         get current() {
+            if (!this.data[this.profile]) {
+                this.data[this.profile] = defaultConfig(this.profile);
+            }
             return this.data[this.profile];
         }
 
@@ -292,18 +310,37 @@
     }
 
     function detectProfile() {
+        const host = location.hostname || "";
         const path = location.pathname || "/";
-        if (
-            path.indexOf("/bangumi/play/") === 0 ||
-            path.indexOf("/bangumi/") === 0
-        )
-            return "bangumi";
-        if (location.hostname === "player.bilibili.com") {
-            const q = new URLSearchParams(location.search);
-            if (q.has("epId") || q.has("epid") || q.has("seasonId"))
-                return "bangumi";
+        if (TEST_MODE) {
+            const forced = new URLSearchParams(location.search).get(
+                "bilia4k-test-profile",
+            );
+            if (forced === "video" || forced === "bangumi") return forced;
         }
-        return "video";
+        if (host === "www.bilibili.com") {
+            return path.indexOf("/bangumi/") === 0 ? "bangumi" : "video";
+        }
+        if (host === "player.bilibili.com") {
+            const q = new URLSearchParams(location.search);
+            return q.has("epId") || q.has("epid") || q.has("seasonId")
+                ? "bangumi"
+                : "video";
+        }
+        return SITE_PREFIX + (host || "unknown");
+    }
+
+    function profileLabel(profile) {
+        if (profile === "bangumi") return "番剧";
+        if (profile === "video") return "普通视频";
+        if (profile.indexOf(SITE_PREFIX) === 0) {
+            return "其他网站 · " + profile.slice(SITE_PREFIX.length);
+        }
+        return profile;
+    }
+
+    function profileTitle(profile) {
+        return profileLabel(profile);
     }
 
     // ---------------------------------------------------------------------------
@@ -1377,7 +1414,7 @@ void main() {
         top: 40px;
         width: 278px;
         pointer-events: auto;
-        max-height: min(72vh, 540px);
+        max-height: min(78vh, 560px);
         overflow: auto;
         background: #000;
         border: 1px solid #2b2b2b;
@@ -1388,6 +1425,16 @@ void main() {
 
     .wrap.open .panel {
         display: block;
+    }
+
+    .panel.flip-x {
+        left: auto;
+        right: 0;
+    }
+
+    .panel.flip-y {
+        top: auto;
+        bottom: 40px;
     }
 
     .panel::-webkit-scrollbar {
@@ -1403,7 +1450,23 @@ void main() {
         display: flex;
         align-items: center;
         gap: 6px;
+        margin-bottom: 2px;
+    }
+
+    .subhead {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        min-width: 0;
         margin-bottom: 7px;
+    }
+
+    .subhead .prof {
+        max-width: 186px;
+    }
+
+    .state {
+        flex: 0 0 auto;
     }
 
     .brand {
@@ -1426,6 +1489,9 @@ void main() {
         border-radius: 99px;
         color: #b9b9b9;
         white-space: nowrap;
+        max-width: 112px;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .chip.on {
@@ -1687,6 +1753,11 @@ void main() {
         display: block;
     }
 
+    .stats-chip.flip {
+        left: auto;
+        right: 40px;
+    }
+
     .toast {
         color: #9a9a9a;
         font-size: 10px;
@@ -1698,6 +1769,11 @@ void main() {
         display: flex;
         gap: 8px;
         margin-top: 8px;
+        position: sticky;
+        bottom: -9px;
+        z-index: 1;
+        background: #000;
+        padding-top: 6px;
     }
 
     .foot button {
@@ -1722,10 +1798,12 @@ void main() {
     <button class="btn" type="button" title="Anime4K 设置"><span class="txt">4K</span><i class="dot"></i></button>
     <div class="panel" role="dialog" aria-label="Anime4K 设置">
         <div class="head">
-            <span class="brand">Anime4K</span><span class="ver">v3</span>
+            <span class="brand">Anime4K</span><span class="ver">v3.1.1</span>
+            <button class="close" type="button" title="关闭">×</button>
+        </div>
+        <div class="subhead">
             <span class="chip prof">普通视频</span>
             <span class="chip state">已关闭</span>
-            <button class="close" type="button" title="关闭">×</button>
         </div>
         <div class="row">
             <span class="lab">启用滤镜</span>
@@ -1733,7 +1811,7 @@ void main() {
         </div>
         <div class="row col">
             <div class="labline">
-                <span class="lab">主模式
+                <span class="lab">主滤镜模式
                     <span class="info"
                         data-tip="A：针对高模糊、压缩伪影较多的 1080p 动画，线条还原最强。B：针对中等伪影的 720p 或部分 1080p，还原更克制、保留纹理。C：针对本身干净的高质量源，只做轻降噪和放大，不做线条重建。">i</span>
                 </span>
@@ -1746,7 +1824,7 @@ void main() {
         </div>
         <div class="row col">
             <div class="labline">
-                <span class="lab">次要模式
+                <span class="lab">次要滤镜模式
                     <span class="info"
                         data-tip="在第一层之后再叠加一层还原，可单独选择 A/B/C。A+A 效果最强也最慢；B+B 更保守；C 可前置降噪。选“无”只跑一层。">i</span>
                 </span>
@@ -1872,9 +1950,11 @@ void main() {
 `;
 
     class UI {
-        constructor(controller, root) {
+        constructor(controller, root, opts = {}) {
             this.controller = controller;
             this.root = root;
+            this.generic = !!opts.generic;
+            this.anchor = opts.video || null;
             this.open = false;
             this.awake = false;
             this.hideTimer = 0;
@@ -1883,8 +1963,9 @@ void main() {
 
             this.host = document.createElement("div");
             this.host.setAttribute("data-bilia4k-ui", "");
-            this.host.style.cssText =
-                "position:absolute;left:12px;top:10px;z-index:2147483647;width:32px;height:32px;pointer-events:none;";
+            this.host.style.cssText = this.generic
+                ? "position:fixed;left:0;top:0;z-index:2147483647;width:32px;height:32px;pointer-events:none;"
+                : "position:absolute;left:12px;top:10px;z-index:2147483647;width:32px;height:32px;pointer-events:none;";
             this.shadow = this.host.attachShadow({ mode: "open" });
             this.shadow.innerHTML = PANEL_HTML;
 
@@ -1896,13 +1977,50 @@ void main() {
             this.tip = this.shadow.querySelector(".tip");
             this.toastEl = this.shadow.querySelector(".toast");
 
-            root.appendChild(this.host);
+            if (this.generic) {
+                document.body.appendChild(this.host);
+                this.updatePosition();
+                this.scrollHandler = () => this.updatePosition();
+                window.addEventListener("scroll", this.scrollHandler, true);
+            } else {
+                root.appendChild(this.host);
+            }
             this.bind();
             this.bindHover();
             this.refresh();
 
             this.statsTimer = setInterval(() => this.tick(), 500);
             this.pollTimer = setInterval(() => this.pollChrome(), 250);
+        }
+
+        updatePosition() {
+            if (!this.generic) return;
+            const video = this.anchor;
+            if (!video || !video.isConnected) {
+                this.host.style.display = "none";
+                return;
+            }
+            const fs = document.fullscreenElement;
+            if (fs === video) {
+                this.host.style.display = "none";
+                return;
+            }
+            const usableFs =
+                fs && fs.contains && fs.contains(video) ? fs : null;
+            const parent = usableFs || document.body;
+            if (this.host.parentElement !== parent) parent.appendChild(this.host);
+            this.host.style.position = usableFs ? "absolute" : "fixed";
+            const base = usableFs
+                ? usableFs.getBoundingClientRect()
+                : { left: 0, top: 0 };
+            const r = video.getBoundingClientRect();
+            if (r.width < 160 || r.height < 90) {
+                this.host.style.display = "none";
+                return;
+            }
+            this.host.style.display = "";
+            this.host.style.left = r.left - base.left + 12 + "px";
+            this.host.style.top = r.top - base.top + 10 + "px";
         }
 
         bind() {
@@ -2109,6 +2227,7 @@ void main() {
             this.wrap.classList.toggle("open", v);
             if (v) {
                 this.setAwake(true);
+                if (this.generic) this.positionPanel();
                 this.refresh();
             } else {
                 this.hideTip();
@@ -2116,8 +2235,24 @@ void main() {
             }
         }
 
+        positionPanel() {
+            if (!this.generic) return;
+            this.panel.classList.remove("flip-x", "flip-y");
+            const r = this.host.getBoundingClientRect();
+            if (r.left + 300 > window.innerWidth)
+                this.panel.classList.add("flip-x");
+            if (r.top + 540 > window.innerHeight)
+                this.panel.classList.add("flip-y");
+        }
+
         pollChrome() {
             if (!this.host.isConnected) return;
+            if (this.generic) {
+                this.updatePosition();
+                this.pollHit();
+                return;
+            }
+
             const root = this.root;
             const screen = root.getAttribute("data-screen");
             const shifted =
@@ -2126,25 +2261,7 @@ void main() {
             const top = shifted ? "56px" : "10px";
             if (this.host.style.top !== top) this.host.style.top = top;
 
-            this.pollCount = (this.pollCount || 0) + 1;
-            if (this.pollCount % 4 === 0) {
-                const rect = this.btn.getBoundingClientRect();
-                if (rect.width > 0) {
-                    const hit = document.elementFromPoint(
-                        rect.left + rect.width / 2,
-                        rect.top + rect.height / 2,
-                    );
-                    const desc = !hit
-                        ? "none"
-                        : hit === this.host
-                          ? "self"
-                          : hit.tagName +
-                            "." +
-                            String(hit.className || "").slice(0, 80);
-                    if (this.host.getAttribute("data-hit") !== desc)
-                        this.host.setAttribute("data-hit", desc);
-                }
-            }
+            this.pollHit();
 
             if (this.open) return;
             const ctrl = root.querySelector(
@@ -2155,6 +2272,26 @@ void main() {
             if (cs.display === "none" || Number(cs.opacity) < 0.05) {
                 this.setAwake(false);
             }
+        }
+
+        pollHit() {
+            this.pollCount = (this.pollCount || 0) + 1;
+            if (this.pollCount % 4 !== 0) return;
+            const rect = this.btn.getBoundingClientRect();
+            if (rect.width <= 0) return;
+            const hit = document.elementFromPoint(
+                rect.left + rect.width / 2,
+                rect.top + rect.height / 2,
+            );
+            const desc = !hit
+                ? "none"
+                : hit === this.host
+                  ? "self"
+                  : hit.tagName +
+                    "." +
+                    String(hit.className || "").slice(0, 80);
+            if (this.host.getAttribute("data-hit") !== desc)
+                this.host.setAttribute("data-hit", desc);
         }
 
         tick() {
@@ -2168,9 +2305,38 @@ void main() {
         }
 
         updateStats(status) {
-            const show = !!(this.controller.config.showStats && status.active);
-            this.statsChip.classList.toggle("show", show);
-            if (show) this.statsChip.textContent = this.controller.statsText();
+            const cfg = this.controller.config;
+            if (!cfg.showStats) {
+                this.statsChip.classList.remove("show");
+                return;
+            }
+            this.statsChip.classList.add("show");
+
+            if (status.blocked) {
+                const map = {
+                    webgl: "WebGL 不可用",
+                    software: "软件渲染",
+                    hdr: "HDR 暂停",
+                    context: "上下文丢失",
+                    cors: "视频源跨域",
+                };
+                this.statsChip.textContent =
+                    "已暂停 · " + (map[status.blocked] || status.blocked);
+            } else if (!status.active) {
+                this.statsChip.textContent = "滤镜已关闭";
+            } else {
+                this.statsChip.textContent = this.controller.statsText();
+            }
+            this.positionStatsChip();
+        }
+
+        positionStatsChip() {
+            if (!this.statsChip.classList.contains("show")) return;
+            this.statsChip.classList.remove("flip");
+            const rect = this.statsChip.getBoundingClientRect();
+            if (rect.right > window.innerWidth - 8) {
+                this.statsChip.classList.add("flip");
+            }
         }
 
         toast(msg) {
@@ -2188,10 +2354,12 @@ void main() {
                 software: "检测到软件渲染（SwiftShader），已停用",
                 hdr: "HDR / 杜比内容，已暂停；可在高级里强制启用",
                 context: "WebGL 上下文丢失，正在尝试恢复",
+                cors: "视频源跨域，无法读取画面帧",
             };
-            const text = status.blocked
-                ? map[status.blocked] || "滤镜已暂停"
-                : "";
+            let text = status.blocked ? map[status.blocked] || "滤镜已暂停" : "";
+            if (!text && status.nativeControls && status.enabled) {
+                text = "该站点使用原生控件，滤镜可能遮挡播放控件";
+            }
             this.warnEl.textContent = text;
             this.warnEl.classList.toggle("show", !!text);
         }
@@ -2218,8 +2386,10 @@ void main() {
                 status.blocked === "webgl" || status.blocked === "software",
             );
 
-            this.shadow.querySelector(".prof").textContent =
-                PROFILE_LABEL[this.controller.profile] || "普通视频";
+            const profEl = this.shadow.querySelector(".prof");
+            const profText = profileLabel(this.controller.profile);
+            profEl.textContent = profText;
+            profEl.title = profileTitle(this.controller.profile);
             const stateChip = this.shadow.querySelector(".state");
             if (status.blocked) stateChip.textContent = "已暂停";
             else stateChip.textContent = cfg.enabled ? "已启用" : "已关闭";
@@ -2294,6 +2464,9 @@ void main() {
                 this.onRootPointerDown,
                 true,
             );
+            if (this.scrollHandler) {
+                window.removeEventListener("scroll", this.scrollHandler, true);
+            }
             if (this.host.parentElement)
                 this.host.parentElement.removeChild(this.host);
         }
@@ -2310,6 +2483,9 @@ void main() {
             this.video = null;
             this.wrap = null;
             this.uiRoot = null;
+            this.kind = null;
+            this.nativeControls = false;
+            this.refreshMeasured = false;
             this.canvas = null;
             this.host = null;
             this.renderer = null;
@@ -2348,10 +2524,9 @@ void main() {
 
         start() {
             this.scan();
-            this.scanTimer = setInterval(() => this.scan(), 700);
+            this.scanTimer = setInterval(() => this.scan(), 1200);
             this.qualityTimer = setInterval(() => this.pollQuality(), 1600);
             document.addEventListener("visibilitychange", this.onVisibility);
-            this.measureRefresh();
             if (typeof GM_registerMenuCommand === "function") {
                 try {
                     GM_registerMenuCommand("Anime4K: 切换当前页面开关", () =>
@@ -2422,6 +2597,10 @@ void main() {
             const cfg = this.config;
             return {
                 profile: this.profile,
+                profileLabel: profileLabel(this.profile),
+                kind: this.kind,
+                domain: location.hostname || "",
+                nativeControls: this.nativeControls,
                 attached: !!this.video,
                 enabled: cfg.enabled,
                 active: this.active,
@@ -2543,6 +2722,7 @@ void main() {
         // ---- 查找并挂载播放器 ----
 
         scan() {
+            if (document.hidden) return;
             const profile = detectProfile();
             if (profile !== this.profile || profile !== this.settings.profile) {
                 this.profile = profile;
@@ -2556,11 +2736,12 @@ void main() {
             }
             if (
                 found.video !== this.video ||
+                found.kind !== this.kind ||
                 found.root !== this.uiRoot ||
                 found.video.parentElement !== this.wrap
             ) {
                 this.detach();
-                this.attach(found.root, found.video);
+                this.attach(found.root, found.video, found.kind);
             }
         }
 
@@ -2578,27 +2759,49 @@ void main() {
             let best = null;
             let bestArea = 0;
             for (const video of videos) {
-                const root =
+                if (video.closest("[data-bilia4k-ui]")) continue;
+                const bpx =
                     video.closest(".bpx-player-container") ||
                     video.closest("#bilibili-player") ||
                     video.closest(".bilibili-player");
-                if (!root) continue;
-                if (video.closest(".bpx-player-mini")) continue;
+                if (bpx && video.closest(".bpx-player-mini")) continue;
+
                 const rect = video.getBoundingClientRect();
                 const area = Math.max(0, rect.width) * Math.max(0, rect.height);
+                // 忽略图标、广告角标、背景装饰等过小的视频。
+                if (area < 240 * 135) continue;
+
+                if (video !== this.video) {
+                    const cs = getComputedStyle(video);
+                    if (
+                        cs.display === "none" ||
+                        cs.visibility === "hidden" ||
+                        Number(cs.opacity) === 0
+                    ) {
+                        continue;
+                    }
+                    if (!video.videoWidth || !video.videoHeight) continue;
+                }
+
                 if (!best || area > bestArea) {
-                    best = { video, root };
+                    best = {
+                        video,
+                        root: bpx || video.parentElement,
+                        kind: bpx ? "bpx" : "generic",
+                    };
                     bestArea = area;
                 }
             }
             return best;
         }
 
-        attach(root, video) {
+        attach(root, video, kind) {
             if (!video.parentElement) return;
+            this.kind = kind || "bpx";
             this.video = video;
-            this.uiRoot = root;
+            this.uiRoot = root || video.parentElement;
             this.wrap = video.parentElement;
+            this.nativeControls = !!video.controls;
 
             this.saveStyle(video, "visibility");
             this.saveStyle(this.wrap, "position");
@@ -2611,11 +2814,15 @@ void main() {
                 "position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;display:none;";
             this.wrap.insertBefore(this.canvas, video.nextSibling);
 
-            this.ui = new UI(this, root);
+            this.ui = new UI(this, this.uiRoot, {
+                generic: this.kind === "generic",
+                video,
+            });
             this.bindVideo(video);
 
             this.ro = new ResizeObserver(() => this.scheduleLayout());
             this.ro.observe(this.wrap);
+            this.ro.observe(video);
             window.addEventListener("resize", this.onViewportChange);
             document.addEventListener(
                 "fullscreenchange",
@@ -2727,6 +2934,8 @@ void main() {
             this.video = null;
             this.uiRoot = null;
             this.wrap = null;
+            this.kind = null;
+            this.nativeControls = false;
             this.blocked = null;
             this.active = false;
             this.lastMediaTime = -1;
@@ -2738,6 +2947,10 @@ void main() {
         ensureStarted() {
             if (!this.video || !this.canvas) return;
             if (!this.video.videoWidth) return;
+            if (!this.refreshMeasured) {
+                this.refreshMeasured = true;
+                this.measureRefresh();
+            }
             this.checkBlocked();
             if (this.blocked) {
                 this.stopFilter();
@@ -2835,29 +3048,53 @@ void main() {
 
         layout(force) {
             if (!this.video || !this.canvas || !this.wrap) return;
-            const rect = this.wrap.getBoundingClientRect();
             const vw = this.video.videoWidth;
             const vh = this.video.videoHeight;
-            if (!vw || !vh || rect.width < 2 || rect.height < 2) return;
+            if (!vw || !vh) return;
 
-            const fit = getComputedStyle(this.video).objectFit;
             let w;
             let h;
-            if (fit === "fill") {
-                w = rect.width;
-                h = rect.height;
-            } else {
-                const aspect = vw / vh;
-                w = rect.width;
-                h = w / aspect;
-                if (h > rect.height) {
-                    h = rect.height;
-                    w = h * aspect;
+            let left;
+            let top;
+            if (this.kind === "generic") {
+                const vr = this.video.getBoundingClientRect();
+                const wr = this.wrap.getBoundingClientRect();
+                if (vr.width < 2 || vr.height < 2) return;
+                const fit = getComputedStyle(this.video).objectFit;
+                if (fit === "fill" || fit === "cover") {
+                    w = vr.width;
+                    h = vr.height;
+                } else {
+                    const aspect = vw / vh;
+                    w = vr.width;
+                    h = w / aspect;
+                    if (h > vr.height) {
+                        h = vr.height;
+                        w = h * aspect;
+                    }
                 }
+                left = vr.left - wr.left + (vr.width - w) / 2;
+                top = vr.top - wr.top + (vr.height - h) / 2;
+            } else {
+                const rect = this.wrap.getBoundingClientRect();
+                if (rect.width < 2 || rect.height < 2) return;
+                const fit = getComputedStyle(this.video).objectFit;
+                if (fit === "fill") {
+                    w = rect.width;
+                    h = rect.height;
+                } else {
+                    const aspect = vw / vh;
+                    w = rect.width;
+                    h = w / aspect;
+                    if (h > rect.height) {
+                        h = rect.height;
+                        w = h * aspect;
+                    }
+                }
+                left = (rect.width - w) / 2;
+                top = (rect.height - h) / 2;
             }
 
-            const left = (rect.width - w) / 2;
-            const top = (rect.height - h) / 2;
             this.canvas.style.left = left + "px";
             this.canvas.style.top = top + "px";
             this.canvas.style.width = w + "px";
@@ -2943,7 +3180,11 @@ void main() {
                 this.renderer.render(this.video);
             } catch (e) {
                 this.lastError = String(e && e.message ? e.message : e);
-                this.blocked = "context";
+                this.blocked = /securityerror|tainted|cross-origin/i.test(
+                    this.lastError,
+                )
+                    ? "cors"
+                    : "context";
                 this.stopFilter();
                 if (this.ui) this.ui.refresh();
                 return;

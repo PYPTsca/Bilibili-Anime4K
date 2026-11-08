@@ -18,6 +18,7 @@
   }
 
   const approx = (a, b, tol = 3) => Math.abs(a - b) <= tol;
+  const SITE_KEY = 'site:' + location.hostname;
 
   window.__wheelHits = 0;
   window.addEventListener('wheel', () => {
@@ -41,22 +42,34 @@
     await until(() => video.readyState >= 2, 8000);
     await until(() => video.videoWidth > 0, 8000);
 
-    const canvas = document.querySelector('.bilia4k-canvas');
-    const host = document.querySelector('[data-bilia4k-ui]');
-    const sr = host && host.shadowRoot;
+    const canvas = () => document.querySelector('.bilia4k-canvas');
+    const host = () => document.querySelector('[data-bilia4k-ui]');
+    const sr = () => (host() ? host().shadowRoot : null);
+
+    const attached = await until(() => api.status.attached, 8000);
+    push('player attached', !!attached, api.status.kind);
+
+    if (mode === 'video-initial') {
+      const chipBefore = sr() && sr().querySelector('.stats-chip');
+      push(
+        'stats chip shows inactive state',
+        !!chipBefore && chipBefore.classList.contains('show') && chipBefore.textContent.includes('滤镜已关闭'),
+        chipBefore && chipBefore.textContent,
+      );
+    }
 
     if (mode === 'video-initial') {
       push('video profile', api.profile === 'video', api.profile);
-      push('config disabled by test bootstrap', api.config.enabled === false, api.config.enabled);
-      push('canvas mounted', !!canvas);
-      push('canvas hidden while disabled', !!canvas && getComputedStyle(canvas).display === 'none', canvas && getComputedStyle(canvas).display);
-      push('ui host mounted', !!host);
-      push('ui host inside player', !!host && document.getElementById('player').contains(host));
+      push('video disabled by seed', api.config.enabled === false, api.config.enabled);
+      push('canvas mounted', !!canvas());
+      push('canvas hidden while disabled', !!canvas() && getComputedStyle(canvas()).display === 'none');
+      push('ui host mounted', !!host());
+      push('ui host inside player', !!host() && document.getElementById('player').contains(host()));
 
       api.setEnabled(true);
       const active = await until(() => api.status.active, 8000);
       push('filter activates', !!active, api.status.blocked);
-      push('video visually hidden', getComputedStyle(video).visibility === 'hidden', getComputedStyle(video).visibility);
+      push('video visually hidden', getComputedStyle(video).visibility === 'hidden');
 
       const p1 = await api.probe();
       push('probe returns frame', !!p1 && p1.width > 0, p1 && [p1.width, p1.height]);
@@ -76,25 +89,22 @@
 
       api.set({ mode: 'A', secondary: 'A' });
       await wait(300);
-      const p2 = await api.probe();
-      push('secondary A renders', !!p2 && p2.width > 0, p2 && [p2.width, p2.height]);
+      push('secondary A renders', !!(await api.probe()));
 
       api.set({ secondary: 'C' });
       await wait(300);
-      const p3 = await api.probe();
-      push('secondary C renders', !!p3 && p3.width > 0);
+      push('secondary C renders', !!(await api.probe()));
 
       api.set({ mode: 'C', secondary: 'none' });
       await wait(250);
-      const p4 = await api.probe();
-      push('denoise mode renders', !!p4 && p4.width > 0);
+      push('denoise mode renders', !!(await api.probe()));
 
       api.set({ mode: 'A', secondary: 'none', variant: 'M' });
       await wait(300);
       const p5 = await api.probe();
       push('variant M target height 1080', !!p5 && p5.height === 1080, p5 && p5.height);
 
-      const rect = canvas.getBoundingClientRect();
+      const rect = canvas().getBoundingClientRect();
       const vrect = video.getBoundingClientRect();
       push(
         'canvas covers video box',
@@ -104,18 +114,32 @@
 
       api.openPanel(true);
       await wait(250);
-      const wrap = sr && sr.querySelector('.wrap');
+      const wrap = sr() && sr().querySelector('.wrap');
       push('panel opens', !!wrap && wrap.classList.contains('open'));
 
-      const segBtn = sr && sr.querySelector('[data-seg="variant"] button[data-v="L"]');
+      const segBtn = sr() && sr().querySelector('[data-seg="variant"] button[data-v="L"]');
       if (segBtn) {
         segBtn.click();
         await wait(300);
       }
       push('seg button updates config', api.config.variant === 'L', api.config.variant);
 
-      const info = sr && sr.querySelector('.info');
-      const tip = sr && sr.querySelector('.tip');
+      const statsCb = sr() && sr().querySelector('input[data-k="showStats"]');
+      if (statsCb) {
+        statsCb.checked = false;
+        statsCb.dispatchEvent(new Event('change', { bubbles: true }));
+        await wait(250);
+        const off = api.config.showStats === false;
+        statsCb.checked = true;
+        statsCb.dispatchEvent(new Event('change', { bubbles: true }));
+        await wait(250);
+        push('stats toggle via UI', off && api.config.showStats === true, api.config.showStats);
+      } else {
+        push('stats toggle via UI', false, 'checkbox missing');
+      }
+
+      const info = sr() && sr().querySelector('.info');
+      const tip = sr() && sr().querySelector('.tip');
       if (info && tip) {
         info.dispatchEvent(new PointerEvent('pointerover', { bubbles: true, composed: true }));
         await wait(120);
@@ -127,11 +151,11 @@
 
       api.set({ showStats: true, variant: 'S' });
       await wait(800);
-      const chip = sr && sr.querySelector('.stats-chip');
+      const chip = sr() && sr().querySelector('.stats-chip');
       push('stats chip visible', !!chip && chip.classList.contains('show'), chip && chip.textContent);
 
       window.__wheelHits = 0;
-      const panel = sr && sr.querySelector('.panel');
+      const panel = sr() && sr().querySelector('.panel');
       panel.dispatchEvent(new WheelEvent('wheel', { bubbles: true, composed: true, cancelable: true }));
       const panelHits = window.__wheelHits;
       document.getElementById('player').dispatchEvent(new WheelEvent('wheel', { bubbles: true, composed: true, cancelable: true }));
@@ -143,14 +167,14 @@
       player.style.width = '640px';
       player.style.height = '360px';
       await wait(500);
-      const cw = canvas.getBoundingClientRect().width;
+      const cw = canvas().getBoundingClientRect().width;
       push('resize relayouts canvas', approx(cw, 640), cw);
       player.style.width = '960px';
       player.style.height = '540px';
       await wait(400);
 
       await wait(1200);
-      push('button hit-test sees host', host.getAttribute('data-hit') === 'self', host.getAttribute('data-hit'));
+      push('button hit-test sees host', host().getAttribute('data-hit') === 'self', host().getAttribute('data-hit'));
 
       api.set({ strength: 85 });
       await wait(250);
@@ -161,7 +185,7 @@
 
     if (mode === 'bangumi') {
       push('bangumi profile', api.profile === 'bangumi', api.profile);
-      push('bangumi enabled by test bootstrap', api.config.enabled === true, api.config.enabled);
+      push('bangumi enabled by seed', api.config.enabled === true, api.config.enabled);
       const active = await until(() => api.status.active, 8000);
       push('bangumi filter auto starts', !!active, api.status.blocked);
       const probe = await api.probe();
@@ -187,16 +211,80 @@
       return { results, status: api.status, probe: api.lastProbe };
     }
 
+    if (mode === 'site-initial') {
+      push('site profile', api.profile === SITE_KEY, api.profile);
+      push('site default disabled', api.config.enabled === false, api.config.enabled);
+      push('site default hides stats', api.config.showStats === false, api.config.showStats);
+      api.setEnabled(true);
+      const active = await until(() => api.status.active, 8000);
+      push('site filter activates', !!active, api.status.blocked);
+      push('site kind bpx', api.status.kind === 'bpx', api.status.kind);
+      const p = await api.probe();
+      push('site renders', !!p && p.width > 0, p && [p.width, p.height]);
+      api.set({ showStats: true, strength: 55 });
+      await wait(800);
+      const chip = sr() && sr().querySelector('.stats-chip');
+      push('site stats chip visible', !!chip && chip.classList.contains('show'), chip && chip.textContent);
+      return { results, status: api.status, probe: api.lastProbe };
+    }
+
+    if (mode === 'generic-initial') {
+      push('site profile persists', api.profile === SITE_KEY, api.profile);
+      push('site enabled persists', api.config.enabled === true, api.config.enabled);
+      push('generic kind', api.status.kind === 'generic', api.status.kind);
+      push('canvas mounted', !!canvas());
+      push('ui host on body', !!host() && host().parentElement === document.body, host() && host().parentElement && host().parentElement.tagName);
+      push('ui host fixed', !!host() && getComputedStyle(host()).position === 'fixed', host() && getComputedStyle(host()).position);
+      push('native controls flagged', api.status.nativeControls === true, api.status.nativeControls);
+
+      const p = await api.probe();
+      push('generic renders', !!p && p.width > 0, p && [p.width, p.height]);
+      push('generic target 864', !!p && p.height === 864, p && p.height);
+
+      const vr = video.getBoundingClientRect();
+      const hr = host().getBoundingClientRect();
+      push('host anchored near video', approx(hr.left, vr.left + 12, 4) && approx(hr.top, vr.top + 10, 4), [hr.left, hr.top, vr.left, vr.top]);
+
+      const crect = canvas().getBoundingClientRect();
+      push('generic canvas covers video', approx(crect.width, vr.width, 4) && approx(crect.height, vr.height, 4), [crect.width, crect.height]);
+
+      api.openPanel(true);
+      await wait(250);
+      const warn = sr() && sr().querySelector('.warnline');
+      push('native controls warning', !!warn && warn.textContent.indexOf('原生控件') >= 0, warn && warn.textContent);
+
+      window.__wheelHits = 0;
+      const panel = sr() && sr().querySelector('.panel');
+      panel.dispatchEvent(new WheelEvent('wheel', { bubbles: true, composed: true, cancelable: true }));
+      push('generic wheel intercepted', window.__wheelHits === 0, window.__wheelHits);
+
+      window.scrollTo(0, 120);
+      await wait(350);
+      const vr2 = video.getBoundingClientRect();
+      const hr2 = host().getBoundingClientRect();
+      push('host follows scroll', approx(hr2.top, vr2.top + 10, 4), [hr2.top, vr2.top]);
+      window.scrollTo(0, 0);
+      await wait(200);
+      return { results, status: api.status, probe: api.lastProbe };
+    }
+
     if (mode === 'video-reload') {
       push('video profile after reload', api.profile === 'video', api.profile);
       push('video strength persisted 85', api.config.strength === 85, api.config.strength);
       push('video enabled persisted', api.config.enabled === true, api.config.enabled);
+      return { results, status: api.status, probe: api.lastProbe };
+    }
+
+    if (mode === 'site-reload') {
+      push('site profile after reload', api.profile === SITE_KEY, api.profile);
+      push('site strength persisted 55', api.config.strength === 55, api.config.strength);
+      push('site enabled persisted', api.config.enabled === true, api.config.enabled);
       push(
-        'bangumi profile isolated (40)',
+        'video profile isolated (85)',
         (() => {
           try {
             const raw = JSON.parse(localStorage.getItem('bilia4k.config.v3') || '{}');
-            return raw.bangumi && raw.bangumi.strength === 40;
+            return raw.video && raw.video.strength === 85;
           } catch (e) {
             return false;
           }

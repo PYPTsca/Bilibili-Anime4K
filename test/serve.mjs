@@ -19,6 +19,7 @@ export function startServer(root, port = 4173) {
       const url = new URL(req.url, 'http://127.0.0.1');
       let p = url.pathname;
       if (p === '/' || p === '/video' || p.startsWith('/bangumi/')) p = '/test/harness.html';
+      else if (p === '/generic') p = '/test/generic.html';
       else if (p === '/test.mp4') p = '/test/test.mp4';
       const file = normalize(join(base, p));
       if (!file.startsWith(base)) {

@@ -25,21 +25,7 @@
     <span class="bpx-player-ctrl-quality-result" id="quality" style="display:none"></span>
   </div>
 
-  <script>
-    // 测试时写入轻量配置（仅首次），避免无头环境用默认 4K + A+A 把测试拖死。
-    if (/[?&]bilia4k-test=1/.test(location.search) && !localStorage.getItem('bilia4k.config.v3')) {
-      var cheap = {
-        enabled: false, mode: 'A', secondary: 'none', variant: 'S',
-        strength: 60, output: '1080', fps: 30, fxaa: false,
-        upscale: 'bicubic', sharpen: 0, lineThreshold: 80,
-        perfGuard: true, showStats: true, forceHdr: false
-      };
-      localStorage.setItem('bilia4k.config.v3', JSON.stringify({
-        video: cheap,
-        bangumi: Object.assign({}, cheap, { enabled: true })
-      }));
-    }
-  </script>
+  <script src="/test/seed.js"></script>
   <script src="/Bilibili-Anime4K.user.js"></script>
   <script src="/test/harness.js"></script>
 </body>
