@@ -1770,9 +1770,8 @@ void main() {
         gap: 8px;
         margin-top: 8px;
         position: sticky;
-        bottom: -9px;
+        bottom: 0px;
         z-index: 1;
-        background: #000;
         padding-top: 6px;
     }
 
@@ -1784,6 +1783,7 @@ void main() {
         font: inherit;
         font-size: 11px;
         padding: 5px 0;
+        box-shadow: 5px 5px 12px #000;
         border-radius: 6px;
         cursor: pointer;
     }
@@ -1791,6 +1791,11 @@ void main() {
     .foot button:hover {
         background: #1c1c1c;
         color: #fff;
+    }
+        
+    .foot button:active {
+        background: #111;
+        color: #ddd;
     }
 </style>
 
@@ -1826,7 +1831,7 @@ void main() {
             <div class="labline">
                 <span class="lab">次要滤镜模式
                     <span class="info"
-                        data-tip="在第一层之后再叠加一层还原，可单独选择 A/B/C。A+A 效果最强也最慢；B+B 更保守；C 可前置降噪。选“无”只跑一层。">i</span>
+                        data-tip="在第一层之后再叠加一层滤镜，可单独选择 A/B/C。A+A 效果最强也最慢；B+B 更保守；C 可前置降噪。选“无”只跑一层。">i</span>
                 </span>
             </div>
             <div class="seg" data-seg="secondary">
@@ -1862,7 +1867,7 @@ void main() {
         </div>
         <div class="row">
             <span class="lab">输出分辨率
-                <span class="info" data-tip="自动按播放器尺寸在 1440P–2160P 间选择；2160P 会做超采样。质量档位会在此基础上再乘内部倍率。">i</span>
+                <span class="info" data-tip="自动按播放器尺寸在 1440P~2160P 间选择；2160P 会做超采样。注意：质量档位会在此基础上再乘对应倍率。">i</span>
             </span>
             <select data-k="output">
                 <option value="auto">自动</option>
@@ -1903,7 +1908,7 @@ void main() {
             <div class="row col">
                 <div class="labline">
                     <span class="lab">锐化
-                        <span class="info" data-tip="后处理 unsharp。用于补偿还原带来的对比度下降，过高会出现白边/黑边。">i</span>
+                        <span class="info" data-tip="用于补偿还原带来的对比度下降，过高会出现白边/黑边。">i</span>
                     </span>
                     <span class="val" data-out="sharpen">60%</span>
                 </div>
@@ -1912,7 +1917,7 @@ void main() {
             <div class="row col">
                 <div class="labline">
                     <span class="lab">线条检测灵敏度
-                        <span class="info" data-tip="越高参与还原的线条越多，效果更明显，也更容易误伤纹理。">i</span>
+                        <span class="info" data-tip="数值越高参与还原的线条越多，效果更明显，也更容易误伤纹理。">i</span>
                     </span>
                     <span class="val" data-out="lineThreshold">85%</span>
                 </div>
@@ -1920,7 +1925,7 @@ void main() {
             </div>
             <div class="row">
                 <span class="lab">性能保护
-                    <span class="info" data-tip="单帧渲染超预算时自动降低内部渲染分辨率，避免掉帧。">i</span>
+                    <span class="info" data-tip="单帧渲染超过预算时自动降低内部渲染分辨率，避免掉帧。">i</span>
                 </span>
                 <label class="sw"><input type="checkbox" data-k="perfGuard"><i></i></label>
             </div>
@@ -2008,7 +2013,8 @@ void main() {
             const usableFs =
                 fs && fs.contains && fs.contains(video) ? fs : null;
             const parent = usableFs || document.body;
-            if (this.host.parentElement !== parent) parent.appendChild(this.host);
+            if (this.host.parentElement !== parent)
+                parent.appendChild(this.host);
             this.host.style.position = usableFs ? "absolute" : "fixed";
             const base = usableFs
                 ? usableFs.getBoundingClientRect()
@@ -2356,7 +2362,9 @@ void main() {
                 context: "WebGL 上下文丢失，正在尝试恢复",
                 cors: "视频源跨域，无法读取画面帧",
             };
-            let text = status.blocked ? map[status.blocked] || "滤镜已暂停" : "";
+            let text = status.blocked
+                ? map[status.blocked] || "滤镜已暂停"
+                : "";
             if (!text && status.nativeControls && status.enabled) {
                 text = "该站点使用原生控件，滤镜可能遮挡播放控件";
             }
