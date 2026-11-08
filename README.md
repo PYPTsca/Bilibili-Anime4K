@@ -2,7 +2,7 @@
 
 给 B 站普通视频、番剧，以及其他网站里可见的`<video>`播放器加一层 Anime4K WebGL实时画质增强。
 
-![Tampermonkey](https://img.shields.io/badge/Tampermonkey-3.1.0-black)
+![Tampermonkey](https://img.shields.io/badge/Tampermonkey-3.1.1-black)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Chrome/Edge](https://img.shields.io/badge/Chrome%2FEdge-only-green)
 
