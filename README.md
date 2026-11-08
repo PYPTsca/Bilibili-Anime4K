@@ -4,7 +4,6 @@
 
 ![Tampermonkey](https://img.shields.io/badge/Tampermonkey-3.1.1-black)
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![Chrome/Edge](https://img.shields.io/badge/Chrome%2FEdge-only-green)
 
 ![预览效果](docs/panel.png)
 
