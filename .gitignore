@@ -8,7 +8,7 @@ node_modules/
 peek.html
 bili-video.css
 
-# 本地参考的旧版第三方脚本，不随仓库分发
+# 本地参考脚本，不随仓库分发
 1.uesr.js
 
 # 系统文件
