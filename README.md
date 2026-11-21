@@ -1,15 +1,14 @@
-# Bilibili Anime4K
+# Bilibili-Anime4K
 
 给 B 站普通视频、番剧，以及其他网站里可见的`<video>`播放器加一层 Anime4K WebGL实时画质增强。
 
-![Tampermonkey](https://img.shields.io/badge/Tampermonkey-3.1.1-black)
+![Tampermonkey](https://img.shields.io/badge/Tampermonkey-3.1.2-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 ![预览效果](docs/panel.png)
 
 ## 功能
 
-- **任意站点**：B站之外的页面只要存在可见的`<video>`播放器，就会按域名生成一套配置；默认关闭。
 - **A/B/C 三种还原模式**：分别针对模糊/压缩伪影较多的视频源、中等伪影的视频源、以及本身干净的高质量视频源。
 - **次要模式**：在A/B/C之上再叠一层滤镜。
 - **S–UL质量档位**：以内部超采样倍率近似Anime4K的CNN变体，档位越高细节越干净、GPU开销越大。
@@ -19,24 +18,27 @@
 - **性能保护**：单帧超预算时自动降低内部渲染分辨率。
 - **边界处理**：4K源自动按原生分辨率输出；HDR/杜比内容默认暂停；WebGL 上下文丢失后自动重建；SPA切集/换视频自动重新挂载；跨域视频源会提示并停用。
 
+- **任意站点(ALL版本)**：B站之外的页面只要存在可见的`<video>`播放器，就会按域名生成一套配置；默认关闭。
+
 ## 安装
 
 前置条件：**Chrome 或 Edge**（Chromium 内核），并安装[Tampermonkey](https://www.tampermonkey.net/)插件。
 
 ### 一键安装
 
-[点击安装 Bilibili-Anime4K.user.js](https://raw.githubusercontent.com/PYPTsca/Bilibili-Anime4K/main/Bilibili-Anime4K.user.js)
+- 脚本仅在B站激活:  
+  [点击安装 Bilibili-Anime4K.user.js](https://raw.githubusercontent.com/PYPTsca/Bilibili-Anime4K/main/Bilibili-Anime4K.user.js)
+
+- 在所有网站激活:  
+  [点击安装 ALL-Anime4K.user.js](https://raw.githubusercontent.com/PYPTsca/Bilibili-Anime4K/main/ALL-Anime4K.user.js)
 
 点击后会跳转Tampermonkey安装页，确认即可。脚本支持自动检查更新。
 
->[!NOTE]
-> 3.1.0起脚本激活范围扩大到所有网站，Tampermonkey会提示“在所有网站运行”。脚本只在检测到可见视频时才注入 UI，但在意权限范围的话可以用 Tampermonkey 的“仅在特定站点运行”自行收紧。
-
 ## 使用
 
-- 鼠标移到播放器左上角，点击打开设置面板。
+- 在播放器**左上角**点击打开设置面板。
 - 番剧页面**默认开启**；普通视频页面、其他网站**默认关闭**。
-- 每个域名、每个profile独立保存开关和全部参数；同一域名换视频/换页面仍沿用。
+- 每个域名、每个profile**独立保存开关和全部参数**。
 - 也可从Tampermonkey菜单里切换当前页面开关、打开面板、重置当前配置。
 
 ### 默认配置
@@ -57,7 +59,7 @@
 | 显示统计       | 关       |
 
 >[!NOTE]
-> 这套默认值渲染压力较大。如果播放不流畅，优先把**质量档位**降到 M/S，或把**输出分辨率**降到 1440P/1080P。
+> 如果默认值播放不流畅，优先把**质量档位**降到 M/S，或把**输出分辨率**降到 1440P/1080P。
 
 ## 参数说明
 

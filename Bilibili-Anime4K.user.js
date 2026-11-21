@@ -7,13 +7,14 @@
 // @downloadURL  https://raw.githubusercontent.com/PYPTsca/Bilibili-Anime4K/main/Bilibili-Anime4K.user.js
 // @updateURL    https://raw.githubusercontent.com/PYPTsca/Bilibili-Anime4K/main/Bilibili-Anime4K.user.js
 // @author       PYPTsca, net2cn, bloc97 and Anime4K contributors
-// @version      3.1.1
-// @description  在 B 站及任意网站的视频播放器上启用 Anime4K WebGL 实时画质增强，支持 A/B/C 模式、次要模式、S–UL 质量档位与按域名保存配置。
-// @description:en  Real-time Anime4K WebGL enhancement for any video player, including Bilibili, with A/B/C modes and per-domain profiles.
+// @version      3.1.2
+// @description  在 B 站普通视频与番剧播放页启用 Anime4K WebGL 实时画质增强，支持 A/B/C 模式、次要模式、S–UL 质量档位与按域名保存配置。
+// @description:en  Real-time Anime4K WebGL enhancement on Bilibili video and bangumi playback pages, with A/B/C modes and per-domain profiles.
 // @copyright    2019 bloc97 (Anime4K); net2cn (Bilibili_Anime4K); 2026 PYPTsca
 // @license      MIT
 // @icon         data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%226%22%20fill%3D%22%23000%22%2F%3E%3Ctext%20x%3D%2216%22%20y%3D%2221%22%20font-family%3D%22Arial%22%20font-size%3D%2212%22%20font-weight%3D%22bold%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3E4K%3C%2Ftext%3E%3C%2Fsvg%3E
-// @match        *://*/*
+// @match        https://*.bilibili.com/video/*
+// @match        https://*.bilibili.com/bangumi/*
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_registerMenuCommand
@@ -27,7 +28,7 @@
     // 0. 环境检查
     // ---------------------------------------------------------------------------
 
-    const VERSION = "3.1.1";
+    const VERSION = "3.1.2";
     const TEST_MODE = /[?&]bilia4k-test=1(?:&|$)/.test(location.search);
     const UI_HOST_ATTR = "data-bilia4k-ui";
 
@@ -1803,7 +1804,7 @@ void main() {
     <button class="btn" type="button" title="Anime4K 设置"><span class="txt">4K</span><i class="dot"></i></button>
     <div class="panel" role="dialog" aria-label="Anime4K 设置">
         <div class="head">
-            <span class="brand">Anime4K</span><span class="ver">v3.1.1</span>
+            <span class="brand">Anime4K</span><span class="ver">v3.1.2</span>
             <button class="close" type="button" title="关闭">×</button>
         </div>
         <div class="subhead">
