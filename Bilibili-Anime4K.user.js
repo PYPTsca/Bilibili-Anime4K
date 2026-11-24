@@ -1,13 +1,13 @@
 // ==UserScript==
-// @name         Bilibili Anime4K
-// @name:en      Bilibili Anime4K
+// @name         Bilibili-Anime4K
+// @name:en      Bilibili-Anime4K
 // @namespace    https://github.com/PYPTsca/Bilibili-Anime4K
 // @homepageURL  https://github.com/PYPTsca/Bilibili-Anime4K
 // @supportURL   https://github.com/PYPTsca/Bilibili-Anime4K/issues
 // @downloadURL  https://raw.githubusercontent.com/PYPTsca/Bilibili-Anime4K/main/Bilibili-Anime4K.user.js
 // @updateURL    https://raw.githubusercontent.com/PYPTsca/Bilibili-Anime4K/main/Bilibili-Anime4K.user.js
 // @author       PYPTsca, net2cn, bloc97 and Anime4K contributors
-// @version      3.1.2
+// @version      3.1.3
 // @description  在 B 站普通视频与番剧播放页启用 Anime4K WebGL 实时画质增强，支持 A/B/C 模式、次要模式、S–UL 质量档位与按域名保存配置。
 // @description:en  Real-time Anime4K WebGL enhancement on Bilibili video and bangumi playback pages, with A/B/C modes and per-domain profiles.
 // @copyright    2019 bloc97 (Anime4K); net2cn (Bilibili_Anime4K); 2026 PYPTsca
@@ -168,12 +168,12 @@
         variant: "UL",
         strength: 80,
         output: "2160",
-        fps: 30,
+        fps: "auto",
         fxaa: false,
         upscale: "lanczos3",
-        sharpen: 60,
+        sharpen: 80,
         lineThreshold: 85,
-        perfGuard: false,
+        perfGuard: true,
         showStats: false,
         forceHdr: false,
     });
@@ -1333,7 +1333,12 @@ void main() {
         width: 32px;
         height: 32px;
         pointer-events: auto;
-        font: 12px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+        font:
+            12px/1.45 -apple-system,
+            BlinkMacSystemFont,
+            "Segoe UI",
+            "Microsoft YaHei",
+            sans-serif;
         color: #fff;
         -webkit-font-smoothing: antialiased;
     }
@@ -1344,16 +1349,22 @@ void main() {
         height: 32px;
         border-radius: 50%;
         pointer-events: auto;
-        border: 1px solid rgba(255, 255, 255, .45);
+        border: 1px solid rgba(255, 255, 255, 0.45);
         background: #000;
         color: #fff;
-        font: 700 11px/1 "Segoe UI", "Microsoft YaHei", sans-serif;
+        font:
+            700 11px/1 "Segoe UI",
+            "Microsoft YaHei",
+            sans-serif;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        opacity: .5;
-        transition: opacity .18s, border-color .18s, box-shadow .18s;
+        opacity: 0.5;
+        transition:
+            opacity 0.18s,
+            border-color 0.18s,
+            box-shadow 0.18s;
         padding: 0;
         outline: none;
     }
@@ -1378,11 +1389,11 @@ void main() {
 
     .wrap.on .btn {
         border-color: #fff;
-        box-shadow: 0 0 0 1px rgba(255, 255, 255, .28);
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.28);
     }
 
     .wrap.off .btn .txt {
-        opacity: .55;
+        opacity: 0.55;
     }
 
     .dot {
@@ -1415,12 +1426,12 @@ void main() {
         top: 40px;
         width: 278px;
         pointer-events: auto;
-        max-height: min(78vh, 560px);
+        max-height: min(72vh, 400px);
         overflow: auto;
         background: #000;
         border: 1px solid #2b2b2b;
         border-radius: 10px;
-        box-shadow: 0 12px 32px rgba(0, 0, 0, .75);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.75);
         padding: 10px 12px 9px;
     }
 
@@ -1473,7 +1484,7 @@ void main() {
     .brand {
         font-weight: 700;
         font-size: 13px;
-        letter-spacing: .2px;
+        letter-spacing: 0.2px;
     }
 
     .ver {
@@ -1587,7 +1598,7 @@ void main() {
         outline: none;
     }
 
-    input[type=range] {
+    input[type="range"] {
         width: 100%;
         margin: 6px 0 0;
         accent-color: #fff;
@@ -1616,7 +1627,7 @@ void main() {
         background: #242424;
         border: 1px solid #3a3a3a;
         border-radius: 99px;
-        transition: .15s;
+        transition: 0.15s;
         pointer-events: none;
     }
 
@@ -1629,15 +1640,15 @@ void main() {
         height: 12px;
         border-radius: 50%;
         background: #777;
-        transition: .15s;
+        transition: 0.15s;
     }
 
-    .sw input:checked+i {
+    .sw input:checked + i {
         background: #fff;
         border-color: #fff;
     }
 
-    .sw input:checked+i::after {
+    .sw input:checked + i::after {
         left: 18px;
         background: #000;
     }
@@ -1668,7 +1679,7 @@ void main() {
         display: inline-block;
         margin-right: 4px;
         font-size: 9px;
-        transition: transform .15s;
+        transition: transform 0.15s;
         transform-origin: 50% 50%;
     }
 
@@ -1708,8 +1719,13 @@ void main() {
         border: 1px solid #333;
         border-radius: 6px;
         color: #ddd;
-        font: 11px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, .7);
+        font:
+            11px/1.55 -apple-system,
+            BlinkMacSystemFont,
+            "Segoe UI",
+            "Microsoft YaHei",
+            sans-serif;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7);
         pointer-events: none;
         display: none;
         white-space: normal;
@@ -1740,11 +1756,15 @@ void main() {
         left: 40px;
         top: 3px;
         padding: 3px 7px;
-        background: rgba(0, 0, 0, .72);
+        background: rgba(0, 0, 0, 0.72);
         border: 1px solid #2b2b2b;
         border-radius: 6px;
         color: #d8d8d8;
-        font: 10px/1.3 "Cascadia Mono", Consolas, "Microsoft YaHei", monospace;
+        font:
+            10px/1.3 "Cascadia Mono",
+            Consolas,
+            "Microsoft YaHei",
+            monospace;
         white-space: nowrap;
         pointer-events: none;
         font-variant-numeric: tabular-nums;
@@ -1767,13 +1787,17 @@ void main() {
     }
 
     .foot {
+        background: #00000075;
+        backdrop-filter: blur(12px);
         display: flex;
+        border-top: 1px solid #00000075;
+        box-shadow: 0px -5px 5px #00000075;
         gap: 8px;
-        margin-top: 8px;
+        margin: 8px -12px 0;
         position: sticky;
-        bottom: 0px;
+        bottom: -10px;
         z-index: 1;
-        padding-top: 6px;
+        padding: 12px;
     }
 
     .foot button {
@@ -1784,7 +1808,6 @@ void main() {
         font: inherit;
         font-size: 11px;
         padding: 5px 0;
-        box-shadow: 5px 5px 12px #000;
         border-radius: 6px;
         cursor: pointer;
     }
@@ -1793,7 +1816,7 @@ void main() {
         background: #1c1c1c;
         color: #fff;
     }
-        
+
     .foot button:active {
         background: #111;
         color: #ddd;
@@ -1801,7 +1824,9 @@ void main() {
 </style>
 
 <div class="wrap">
-    <button class="btn" type="button" title="Anime4K 设置"><span class="txt">4K</span><i class="dot"></i></button>
+    <button class="btn" type="button" title="Anime4K 设置">
+        <span class="txt">4K</span><i class="dot"></i>
+    </button>
     <div class="panel" role="dialog" aria-label="Anime4K 设置">
         <div class="head">
             <span class="brand">Anime4K</span><span class="ver">v3.1.2</span>
@@ -1813,13 +1838,19 @@ void main() {
         </div>
         <div class="row">
             <span class="lab">启用滤镜</span>
-            <label class="sw"><input type="checkbox" data-k="enabled"><i></i></label>
+            <label class="sw"
+                ><input type="checkbox" data-k="enabled" /><i></i
+            ></label>
         </div>
         <div class="row col">
             <div class="labline">
-                <span class="lab">主滤镜模式
-                    <span class="info"
-                        data-tip="A：针对高模糊、压缩伪影较多的 1080p 动画，线条还原最强。B：针对中等伪影的 720p 或部分 1080p，还原更克制、保留纹理。C：针对本身干净的高质量源，只做轻降噪和放大，不做线条重建。">i</span>
+                <span class="lab"
+                    >主滤镜模式
+                    <span
+                        class="info"
+                        data-tip="A：针对高模糊、压缩伪影较多的 1080p 动画，线条还原最强。B：针对中等伪影的 720p 或部分 1080p，还原更克制、保留纹理。C：针对本身干净的高质量源，只做轻降噪和放大，不做线条重建。"
+                        >i</span
+                    >
                 </span>
             </div>
             <div class="seg" data-seg="mode">
@@ -1830,9 +1861,13 @@ void main() {
         </div>
         <div class="row col">
             <div class="labline">
-                <span class="lab">次要滤镜模式
-                    <span class="info"
-                        data-tip="在第一层之后再叠加一层滤镜，可单独选择 A/B/C。A+A 效果最强也最慢；B+B 更保守；C 可前置降噪。选“无”只跑一层。">i</span>
+                <span class="lab"
+                    >次要滤镜模式
+                    <span
+                        class="info"
+                        data-tip="在第一层之后再叠加一层滤镜，可单独选择 A/B/C。A+A 效果最强也最慢；B+B 更保守；C 可前置降噪。选“无”只跑一层。"
+                        >i</span
+                    >
                 </span>
             </div>
             <div class="seg" data-seg="secondary">
@@ -1844,9 +1879,13 @@ void main() {
         </div>
         <div class="row col">
             <div class="labline">
-                <span class="lab">质量档位
-                    <span class="info"
-                        data-tip="近似 Anime4K 的 CNN 变体：S 最快；每升一档内部超采样倍率更高、线条更干净，GPU 开销约翻倍（S 0.8× / M 1× / L 1.2× / VL 1.45× / UL 1.75×）。">i</span>
+                <span class="lab"
+                    >质量档位
+                    <span
+                        class="info"
+                        data-tip="近似 Anime4K 的 CNN 变体：S 最快；每升一档内部超采样倍率更高、线条更干净，GPU 开销约翻倍（S 0.8× / M 1× / L 1.2× / VL 1.45× / UL 1.75×）。"
+                        >i</span
+                    >
                 </span>
             </div>
             <div class="seg" data-seg="variant">
@@ -1859,16 +1898,26 @@ void main() {
         </div>
         <div class="row col">
             <div class="labline">
-                <span class="lab">还原强度
-                    <span class="info" data-tip="线条还原与细化的总幅度。越高线条越细越亮，画质提升越明显；过高会发灰、出现振铃。">i</span>
+                <span class="lab"
+                    >还原强度
+                    <span
+                        class="info"
+                        data-tip="线条还原与细化的总幅度。越高线条越细越亮，画质提升越明显；过高会发灰、出现振铃。"
+                        >i</span
+                    >
                     <span class="val" data-out="strength">80%</span>
                 </span>
             </div>
-            <input type="range" data-k="strength" min="0" max="100" step="5">
+            <input type="range" data-k="strength" min="0" max="100" step="5" />
         </div>
         <div class="row">
-            <span class="lab">输出分辨率
-                <span class="info" data-tip="自动按播放器尺寸在 1440P~2160P 间选择；2160P 会做超采样。注意：质量档位会在此基础上再乘对应倍率。">i</span>
+            <span class="lab"
+                >输出分辨率
+                <span
+                    class="info"
+                    data-tip="自动按播放器尺寸在 1440P~2160P 间选择；2160P 会做超采样。注意：质量档位会在此基础上再乘对应倍率。"
+                    >i</span
+                >
             </span>
             <select data-k="output">
                 <option value="auto">自动</option>
@@ -1879,8 +1928,13 @@ void main() {
             </select>
         </div>
         <div class="row col">
-            <span class="lab">帧率上限
-                <span class="info" data-tip="渲染帧率上限。24fps 动画用 30 足够；60 更跟手，但 GPU 压力更大。">i</span>
+            <span class="lab"
+                >帧率上限
+                <span
+                    class="info"
+                    data-tip="渲染帧率上限。24fps 动画用 30 足够；60 更跟手，但 GPU 压力更大。"
+                    >i</span
+                >
             </span>
             <div class="seg" data-seg="fps">
                 <button type="button" data-v="auto">自动</button>
@@ -1891,14 +1945,26 @@ void main() {
         <details class="adv">
             <summary><span class="arrow">▸</span>高级参数</summary>
             <div class="row">
-                <span class="lab">FXAA 抗锯齿
-                    <span class="info" data-tip="边缘抗锯齿。开启更平滑，关闭更锐利但锯齿更明显。">i</span>
+                <span class="lab"
+                    >FXAA 抗锯齿
+                    <span
+                        class="info"
+                        data-tip="边缘抗锯齿。开启更平滑，关闭更锐利但在输出分辨率小于屏幕时锯齿更明显。"
+                        >i</span
+                    >
                 </span>
-                <label class="sw"><input type="checkbox" data-k="fxaa"><i></i></label>
+                <label class="sw"
+                    ><input type="checkbox" data-k="fxaa" /><i></i
+                ></label>
             </div>
             <div class="row">
-                <span class="lab">放大算法
-                    <span class="info" data-tip="双线性最柔和、最快；双三次平衡；Lanczos3 最锐，可能产生白边。">i</span>
+                <span class="lab"
+                    >放大算法
+                    <span
+                        class="info"
+                        data-tip="双线性最柔和、最快；双三次平衡；Lanczos3 最锐，可能产生白边。"
+                        >i</span
+                    >
                 </span>
                 <select data-k="upscale">
                     <option value="bilinear">双线性</option>
@@ -1908,39 +1974,82 @@ void main() {
             </div>
             <div class="row col">
                 <div class="labline">
-                    <span class="lab">锐化
-                        <span class="info" data-tip="用于补偿还原带来的对比度下降，过高会出现白边/黑边。">i</span>
+                    <span class="lab"
+                        >锐化
+                        <span
+                            class="info"
+                            data-tip="用于补偿还原带来的对比度下降，过高会出现白边/黑边。"
+                            >i</span
+                        >
                     </span>
                     <span class="val" data-out="sharpen">60%</span>
                 </div>
-                <input type="range" data-k="sharpen" min="0" max="100" step="5">
+                <input
+                    type="range"
+                    data-k="sharpen"
+                    min="0"
+                    max="100"
+                    step="5"
+                />
             </div>
             <div class="row col">
                 <div class="labline">
-                    <span class="lab">线条检测灵敏度
-                        <span class="info" data-tip="数值越高参与还原的线条越多，效果更明显，也更容易误伤纹理。">i</span>
+                    <span class="lab"
+                        >线条检测灵敏度
+                        <span
+                            class="info"
+                            data-tip="数值越高参与还原的线条越多，效果更明显，也更容易误伤纹理。"
+                            >i</span
+                        >
                     </span>
                     <span class="val" data-out="lineThreshold">85%</span>
                 </div>
-                <input type="range" data-k="lineThreshold" min="0" max="100" step="5">
+                <input
+                    type="range"
+                    data-k="lineThreshold"
+                    min="0"
+                    max="100"
+                    step="5"
+                />
             </div>
             <div class="row">
-                <span class="lab">性能保护
-                    <span class="info" data-tip="单帧渲染超过预算时自动降低内部渲染分辨率，避免掉帧。">i</span>
+                <span class="lab"
+                    >性能保护
+                    <span
+                        class="info"
+                        data-tip="单帧渲染超过预算时自动降低内部渲染分辨率，避免掉帧。"
+                        >i</span
+                    >
                 </span>
-                <label class="sw"><input type="checkbox" data-k="perfGuard"><i></i></label>
+                <label class="sw"
+                    ><input type="checkbox" data-k="perfGuard" /><i></i
+                ></label>
             </div>
             <div class="row">
-                <span class="lab">显示统计
-                    <span class="info" data-tip="在按钮右侧显示模式、分辨率、fps 与 GPU 耗时。">i</span>
+                <span class="lab"
+                    >显示统计
+                    <span
+                        class="info"
+                        data-tip="在按钮右侧显示模式、分辨率、fps 与 GPU 耗时。"
+                        >i</span
+                    >
                 </span>
-                <label class="sw"><input type="checkbox" data-k="showStats"><i></i></label>
+                <label class="sw"
+                    ><input type="checkbox" data-k="showStats" /><i></i
+                ></label>
             </div>
             <div class="row">
-                <span class="lab">HDR 内容强制启用
-                    <span class="info" data-tip="识别到 HDR/杜比内容时默认暂停；强制开启可能偏色。">i</span>
+                <span class="lab"
+                    >HDR 内容强制启用
+                    <span
+                        class="info"
+                        data-tip="识别到 HDR/杜比内容时默认暂停；强制开启可能偏色。"
+                        >i</span
+                    >
                 </span>
-                <label class="sw"><input type="checkbox" data-k="forceHdr"><i></i></label>
+                <label class="sw"
+                    ><input type="checkbox" data-k="forceHdr" /><i></i
+                ></label>
             </div>
         </details>
         <div class="warnline"></div>
@@ -1953,6 +2062,7 @@ void main() {
 </div>
 <div class="stats-chip"></div>
 <div class="tip"></div>
+
 `;
 
     class UI {

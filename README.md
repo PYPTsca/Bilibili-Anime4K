@@ -1,11 +1,11 @@
 # Bilibili-Anime4K
 
-给 B 站普通视频、番剧，以及其他网站里可见的`<video>`播放器加一层 Anime4K WebGL实时画质增强。
+给 B 站普通视频、番剧，以及其他网站里可见的播放器加一层 Anime4K WebGL 实时画质增强。
 
 ![Tampermonkey](https://img.shields.io/badge/Tampermonkey-3.1.2-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
-![预览效果](docs/panel.png)
+![预览效果](docs/panel.webp)
 
 ## 功能
 
@@ -22,7 +22,7 @@
 
 ## 安装
 
-前置条件：**Chrome 或 Edge**（Chromium 内核），并安装[Tampermonkey](https://www.tampermonkey.net/)插件。
+前置条件：**Chrome 或 Edge** (Chromium 内核) ，并安装[Tampermonkey](https://www.tampermonkey.net/)插件。
 
 ### 一键安装
 
@@ -38,7 +38,7 @@
 
 - 在播放器**左上角**点击打开设置面板。
 - 番剧页面**默认开启**；普通视频页面、其他网站**默认关闭**。
-- 每个域名、每个profile**独立保存开关和全部参数**。
+- 每个域名、每个 profile **独立保存开关和全部参数**。
 - 也可从Tampermonkey菜单里切换当前页面开关、打开面板、重置当前配置。
 
 ### 默认配置
@@ -50,12 +50,12 @@
 | 质量档位       | UL       |
 | 还原强度       | 80%      |
 | 输出分辨率     | 2160P    |
-| 帧率上限       | 30       |
+| 帧率上限       | 自动     |
 | FXAA           | 关       |
 | 放大算法       | Lanczos3 |
-| 锐化           | 60%      |
+| 锐化           | 80%      |
 | 线条检测灵敏度 | 85%      |
-| 性能保护       | 关       |
+| 性能保护       | 开       |
 | 显示统计       | 关       |
 
 >[!NOTE]
@@ -73,7 +73,8 @@
 
 ### 次要模式
 
-`无 / A / B / C`。第二层滤镜的独立选择；选“无”只加载一层。
+`无 / A / B / C`  
+第二层滤镜的独立选择；选`无`只加载一层。
 
 ### 质量档位
 
@@ -85,6 +86,7 @@
 | VL   | 1.45×          |
 | UL   | 1.75×          |
 
+> [!NOTE]
 > 这是**近似实现**：真正的 Anime4K v4 CNN 变体在 WebGL 里无法实时运行，本脚本用内部超采样倍率模拟“越高越清晰、越慢”的梯度。模式本身也是经典 WebGL 管线的近似，不是 v4 的 CNN 推理。
 
 ### 其它参数
@@ -95,7 +97,7 @@
 | 输出分辨率       | 自动：按播放器显示尺寸\*DPR，在1440P–2160P间取值；原生：跟源一致；1080/1440/2160P：指定内部目标高度。4K 源在“自动”下直接按原生输出。 |
 | 帧率上限         | 自动：屏幕刷新率的一半，限制在 30–60；也可固定 30 或 60。                                                                            |
 | FXAA             | 边缘抗锯齿。开更平滑，关更锐利。                                                                                                     |
-| 放大算法         | 双线性最柔和、双三次平衡、Lanczos3最锐（可能产生白边）。                                                                             |
+| 放大算法         | 双线性最柔和、双三次平衡、Lanczos3最锐 (可能产生白边) 。                                                                             |
 | 锐化             | 后处理unsharp，用于补偿还原造成的对比度下降。                                                                                        |
 | 线条检测灵敏度   | 越高参与还原的线条越多，效果更明显，也更容易误伤纹理。                                                                               |
 | 性能保护         | 单帧超预算时自动降低内部渲染分辨率，避免掉帧。                                                                                       |
@@ -104,38 +106,38 @@
 
 ## 性能建议
 
-- 统计条里的`GPU xx ms`是单帧渲染耗时：30fps预算是33ms，60fps是16ms；长期贴近预算就降档。
-- 默认值渲染压力很大，中低端GPU/核显建议先降到**M档+1440P**。
-- 720P/低码率番剧的提升最明显；1080P高码率源本身干净，Anime4K的还原幅度天生较小。
-- 觉得画面发灰：降低「还原强度」，把「锐化」提到 30–60，或改用C模式。
+- 统计条里的`GPU xx ms`是单帧渲染耗时：30fps预算是33ms，60fps是16ms；性能保护开启时长期贴近预算就降档。
+- 默认值渲染压力较大，中低端GPU/核显建议先降到**M档+1440P**。
+- 720P/低码率番剧的提升最明显；1080P高码率源本身干净，Anime4K的还原幅度较小。
+- 觉得画面发灰：降低 「还原强度」，把 「锐化」 提到 30–60，或改用C模式。
 
 ## 兼容性与已知限制
 
-- 仅支持**Chrome/Edge**（Chromium 内核）；Firefox、Safari未适配。
-- B站使用标准 `bpx` 播放器；B 站DOM大改时可能需要更新选择器。
+- 仅支持使用Chromium内核的浏览器 (Chrome/Edge等)；Firefox/Safari 未适配。
+- B站使用标准 `bpx` 播放器；B站DOM大改时可能需要更新选择器。
 - 其他站点按“页面中面积最大的可见视频”识别播放器，可能误选背景视频/广告视频；可关闭该域名配置。
-- 原生`<video controls>`站点：滤镜会隐藏原视频画面，原生播放控件可能被一起遮住；面板会给出提示，建议此类站点使用自定义控件的播放器。
-- 跨域视频源（未开启 CORS 的 CDN）无法被 WebGL 读取，脚本会提示“视频源跨域”并停用。
-- 原生视频元素全屏（`video.requestFullscreen()`）时无法叠加滤镜；容器全屏可以。
-- 不处理 DRM/EME 内容；HDR/杜比识别是清晰度文案启发式，可能漏判。
-- 画中画、截图等原生能力使用隐藏后的`<video>`，可能拿到未滤镜画面。
-- B 站小窗/迷你播放器不在支持范围内（脚本会跳过）。
-- 嵌入 iframe 的播放器由 iframe 内的脚本实例处理，配置按iframe自身的域名保存。
+- 原生 `<video controls>` 站点：滤镜会隐藏原视频画面，原生播放控件可能被一起遮住；面板会给出提示，建议此类站点使用自定义控件的播放器。
+- 跨域视频源 (未开启 CORS 的 CDN) 无法被 WebGL 读取，脚本会提示“视频源跨域”并停用。
+- 原生视频元素全屏 `video.requestFullscreen()` 时无法叠加滤镜。
+- 不处理 DRM/EME 内容；HDR/杜比识别是根据选项文案匹配，对站外内容可能漏判。
+- 画中画、截图等原生能力使用隐藏后的 `<video>`，可能输出无滤镜画面。
+- B 站小窗/迷你播放器不在支持范围内 (脚本会跳过) 。
+- 嵌入 iframe 的播放器由 iframe 内的脚本实例处理，配置按 iframe 自身的域名保存。
 
 ## 配置作用域
 
-| 页面                                  | profile           | 默认开关 |
-| ------------------------------------- | ----------------- | -------- |
-| `www.bilibili.com` （普通视频）       | `video`           | 关闭     |
-| `www.bilibili.com/bangumi/*` （番剧） | `bangumi`         | 开启     |
-| `player.bilibili.com` 嵌入播放器      | `video`/`bangumi` | 同上     |
-| 其他任意站点                          | `site:<hostname>` | 关闭     |
+| 页面                                   | profile           | 默认开关 |
+| -------------------------------------- | ----------------- | -------- |
+| `www.bilibili.com`  (普通视频)         | `video`           | 关闭     |
+| `www.bilibili.com/bangumi/*`  (番剧)   | `bangumi`         | 开启     |
+| `player.bilibili.com` 站外嵌入式播放器 | `video`/`bangumi` | 同上     |
+| 其他任意站点                           | `site:<hostname>` | 关闭     |
 
 ## 开发与测试
 
 脚本无构建步骤，直接编辑`Bilibili-Anime4K.user.js`即可。
 
-本地验收需要Node 20+、Windows、Edge（测试工具通过 CDP 驱动无头 Edge）：
+本地验收需要Node 20+、Windows、Edge (测试工具通过 CDP 驱动无头 Edge) ：
 
 ```powershell
 node tools/test-runner.mjs
@@ -143,9 +145,9 @@ node tools/test-runner.mjs
 
 它会启动本地静态服务器，依次加载：
 
-- `/video?...&bilia4k-test-profile=video`：B 站普通视频 profile（bpx 假播放器）
+- `/video?...&bilia4k-test-profile=video`：B 站普通视频 profile (bpx 假播放器) 
 - `/bangumi/play/ep1?...&bilia4k-test-profile=bangumi`：番剧 profile
-- `/video?...`：其他站点 profile（同一个 bpx 假播放器，验证域名配置）
+- `/video?...`：其他站点 profile (同一个 bpx 假播放器，验证域名配置) 
 - `/generic`：无 bpx 类的通用 `<video>`，验证任意站点路径、固定 UI、原生控件提示、滚动跟随
 - 再次加载视频页与站点页，验证按 profile / 按域名持久化
 
@@ -158,7 +160,7 @@ $env:EDGE_PATH = "D:\Edge\msedge.exe"
 node tools/test-runner.mjs
 ```
 
-测试视频由 ffmpeg 生成（仓库已有 `test/test.mp4`，需要重新生成时）：
+测试视频由 ffmpeg 生成 (仓库已有 `test/test.mp4`，需要重新生成时) ：
 
 ```powershell
 ffmpeg -y -f lavfi -i "testsrc2=size=1280x720:rate=24:duration=6" `
@@ -173,10 +175,8 @@ ffmpeg -y -f lavfi -i "testsrc2=size=1280x720:rate=24:duration=6" `
 
 ## 致谢
 
-- [bloc97/Anime4K](https://github.com/bloc97/Anime4K)：算法与 GLSL 管线（MIT）
-- [NeuroWhAI](https://github.com/NeuroWhAI)：Anime4K WebGL 实现
-- [net2cn/Bilibili_Anime4K](https://github.com/net2cn/Bilibili_Anime4K)：B 站用户脚本基线（MIT）
-- [Tampermonkey](https://www.tampermonkey.net/)
+- [bloc97/Anime4K](https://github.com/bloc97/Anime4K)：算法与 GLSL 管线 (MIT) 
+- [net2cn/Bilibili_Anime4K](https://github.com/net2cn/Bilibili_Anime4K)：B 站用户脚本基线 (MIT) 
 
 ## 许可证
 
